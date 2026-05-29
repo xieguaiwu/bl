@@ -161,7 +161,7 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 	if entry.WordType == "" && entry.CefrLevel == "" &&
 		entry.Phonetic == "" && len(entry.Definitions) == 0 &&
 		len(entry.Examples) == 0 {
-		return nil, fmt.Errorf("no German dictionary data found for %q", word)
+		return nil, &NoTranslationResults{word: word}
 	}
 
 	return &TranslationData{Type: TypeGerman, German: entry}, nil

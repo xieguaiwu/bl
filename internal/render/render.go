@@ -17,6 +17,20 @@ const (
 	ansiBrightBlack = "\033[90m"
 )
 
+func renderExamples(b *strings.Builder, examples []dict.Example, colored bool) {
+	fmt.Fprintln(b, "# Examples")
+	for _, ex := range examples {
+		if colored {
+			fmt.Fprintf(b, "* %s%s%s\n", ansiGreen, ex.En, ansiReset)
+			fmt.Fprintf(b, "  %s%s%s\n", ansiMagenta, ex.Zh, ansiReset)
+		} else {
+			fmt.Fprintf(b, "* %s\n", ex.En)
+			fmt.Fprintf(b, "  %s\n", ex.Zh)
+		}
+	}
+	fmt.Fprintln(b)
+}
+
 func RenderChinese(result *dict.ToChinese, colored bool) string {
 	var b strings.Builder
 
@@ -57,17 +71,7 @@ func RenderChinese(result *dict.ToChinese, colored bool) string {
 	}
 
 	if len(result.Examples) > 0 {
-		fmt.Fprintln(&b, "# Examples")
-		for _, ex := range result.Examples {
-			if colored {
-				fmt.Fprintf(&b, "* %s%s%s\n", ansiGreen, ex.En, ansiReset)
-				fmt.Fprintf(&b, "  %s%s%s\n", ansiMagenta, ex.Zh, ansiReset)
-			} else {
-				fmt.Fprintf(&b, "* %s\n", ex.En)
-				fmt.Fprintf(&b, "  %s\n", ex.Zh)
-			}
-		}
-		fmt.Fprintln(&b)
+		renderExamples(&b, result.Examples, colored)
 	}
 
 	return strings.TrimRight(b.String(), "\n")
@@ -89,17 +93,7 @@ func RenderEnglish(result *dict.ToEnglish, colored bool) string {
 	}
 
 	if len(result.Examples) > 0 {
-		fmt.Fprintln(&b, "# Examples")
-		for _, ex := range result.Examples {
-			if colored {
-				fmt.Fprintf(&b, "* %s%s%s\n", ansiGreen, ex.En, ansiReset)
-				fmt.Fprintf(&b, "  %s%s%s\n", ansiMagenta, ex.Zh, ansiReset)
-			} else {
-				fmt.Fprintf(&b, "* %s\n", ex.En)
-				fmt.Fprintf(&b, "  %s\n", ex.Zh)
-			}
-		}
-		fmt.Fprintln(&b)
+		renderExamples(&b, result.Examples, colored)
 	}
 
 	return strings.TrimRight(b.String(), "\n")
@@ -188,11 +182,17 @@ func RenderGermanEntry(entry *dict.GermanEntry, colored bool) string {
 func RenderOneliner(data *dict.TranslationData) string {
 	switch data.Type {
 	case dict.TypeToChinese:
-		return renderChineseOneliner(data.ToChinese)
+		if data.ToChinese != nil {
+			return renderChineseOneliner(data.ToChinese)
+		}
 	case dict.TypeToEnglish:
-		return renderEnglishOneliner(data.ToEnglish)
+		if data.ToEnglish != nil {
+			return renderEnglishOneliner(data.ToEnglish)
+		}
 	case dict.TypeGerman:
-		return renderGermanOneliner(data.German)
+		if data.German != nil {
+			return renderGermanOneliner(data.German)
+		}
 	}
 	return ""
 }
@@ -239,11 +239,17 @@ func RenderTranslation(data *dict.TranslationData, fmt_ dict.Format, colored boo
 	default:
 		switch data.Type {
 		case dict.TypeToChinese:
-			return RenderChinese(data.ToChinese, colored)
+			if data.ToChinese != nil {
+				return RenderChinese(data.ToChinese, colored)
+			}
 		case dict.TypeToEnglish:
-			return RenderEnglish(data.ToEnglish, colored)
+			if data.ToEnglish != nil {
+				return RenderEnglish(data.ToEnglish, colored)
+			}
 		case dict.TypeGerman:
-			return RenderGermanEntry(data.German, colored)
+			if data.German != nil {
+				return RenderGermanEntry(data.German, colored)
+			}
 		}
 		return ""
 	}

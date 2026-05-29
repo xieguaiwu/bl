@@ -82,18 +82,7 @@ func parseToChinese(inputText string, html string) (*TranslationData, error) {
 		}
 	})
 
-	body.Find(".trans-container .mcols-layout .col2").Each(func(_ int, s *goquery.Selection) {
-		ex := Example{}
-		if en := s.Find(".sen-eng").First(); en.Length() > 0 {
-			ex.En = strings.TrimSpace(en.Text())
-		}
-		if zh := s.Find(".sen-ch").First(); zh.Length() > 0 {
-			ex.Zh = strings.TrimSpace(zh.Text())
-		}
-		if ex.En != "" || ex.Zh != "" {
-			result.Examples = append(result.Examples, ex)
-		}
-	})
+	result.Examples = parseExamples(body)
 
 	if len(result.Examples) == 0 && len(result.Meanings) == 0 &&
 		result.Pronunciation.Uk == "" && result.Pronunciation.Us == "" {
@@ -123,6 +112,17 @@ func parseToEnglish(inputText string, html string) (*TranslationData, error) {
 		}
 	})
 
+	result.Examples = parseExamples(body)
+
+	if len(result.Examples) == 0 && len(result.Meanings) == 0 {
+		return nil, &NoTranslationResults{word: inputText}
+	}
+
+	return &TranslationData{Type: TypeToEnglish, ToEnglish: result}, nil
+}
+
+func parseExamples(body *goquery.Selection) []Example {
+	var examples []Example
 	body.Find(".trans-container .mcols-layout .col2").Each(func(_ int, s *goquery.Selection) {
 		ex := Example{}
 		if en := s.Find(".sen-eng").First(); en.Length() > 0 {
@@ -132,13 +132,8 @@ func parseToEnglish(inputText string, html string) (*TranslationData, error) {
 			ex.Zh = strings.TrimSpace(zh.Text())
 		}
 		if ex.En != "" || ex.Zh != "" {
-			result.Examples = append(result.Examples, ex)
+			examples = append(examples, ex)
 		}
 	})
-
-	if len(result.Examples) == 0 && len(result.Meanings) == 0 {
-		return nil, &NoTranslationResults{word: inputText}
-	}
-
-	return &TranslationData{Type: TypeToEnglish, ToEnglish: result}, nil
+	return examples
 }

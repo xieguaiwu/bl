@@ -24,7 +24,7 @@ type DictionarySource interface {
 
 1. Create a new file `internal/dict/foo.go`
 2. Define a struct implementing `DictionarySource`
-3. Wire it in `main.go` (the `newSource()` function) and `cmd/telegram/main.go`
+3. Wire it in `internal/dict/source.go` (the `NewSourceByName` function) and both `cmd/telegram/main.go` and `cmd/dingtalk/main.go`
 4. If the result format differs from existing variants, add a new variant to `TranslationType` and `TranslationData` in `types.go`
 5. Add a render function in `internal/render/render.go`
 6. Register the dispatch in `RenderTranslation()`
@@ -227,8 +227,9 @@ mu.Unlock()
 - [ ] Update `MarshalJSON` / `UnmarshalJSON` in `types.go`
 - [ ] Add render function in `internal/render/render.go`
 - [ ] Register dispatch in `RenderTranslation()`
-- [ ] Register source in `main.go` (`newSource()`)
+- [ ] Register source in `main.go` (`NewSourceByName`)
 - [ ] Register source in `cmd/telegram/main.go`
+- [ ] Register source in `cmd/dingtalk/main.go`
 - [ ] Build: `go build -o bl . && go vet ./...`
 
 ### New Output Format

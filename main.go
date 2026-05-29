@@ -89,13 +89,17 @@ func main() {
 		return
 	}
 
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		input, _ := io.ReadAll(os.Stdin)
-		text := strings.TrimSpace(string(input))
-		if text != "" {
-			output(client, text, outfmt)
-			return
+	stat, err := os.Stdin.Stat()
+	if err == nil && (stat.Mode()&os.ModeCharDevice) == 0 {
+		input, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		} else {
+			text := strings.TrimSpace(string(input))
+			if text != "" {
+				output(client, text, outfmt)
+				return
+			}
 		}
 	}
 
@@ -123,7 +127,11 @@ func output(client *dict.Rdict, text string, fmt_ dict.Format) {
 	}
 
 	if fmt_ == dict.FormatJSON {
-		out, _ := json.MarshalIndent(result.Data, "", "  ")
+		out, err := json.MarshalIndent(result.Data, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			return
+		}
 		fmt.Println(string(out))
 		return
 	}
