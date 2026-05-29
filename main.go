@@ -11,13 +11,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"bl/internal/config"
 	"bl/internal/dict"
 	"bl/internal/render"
 )
 
-var userAgent = "bl/" + "0.1.0" // will be replaced on build
+var userAgent = "bl/" + "0.1.0"
 
-type config struct {
+type runConfig struct {
 	text       string
 	json       bool
 	oneliner   bool
@@ -25,12 +26,15 @@ type config struct {
 	source     string
 	german     bool
 	offline    bool
+	online     bool
 	updateDict bool
 	dictStatus bool
+	genConfig  bool
+	modeFlag   string // "auto", "offline", "online" — sets config and exits
 }
 
-func parseFlags() config {
-	var cfg config
+func parseFlags() runConfig {
+	var cfg runConfig
 	flag.BoolVar(&cfg.json, "json", false, "output using JSON")
 	flag.BoolVar(&cfg.json, "j", false, "shorthand for --json")
 	flag.BoolVar(&cfg.oneliner, "oneliner", false, "single-line compact output")
@@ -41,11 +45,19 @@ func parseFlags() config {
 	flag.BoolVar(&cfg.german, "german", false, "use German dictionary (woerter-net)")
 	flag.BoolVar(&cfg.german, "g", false, "shorthand for --german")
 	flag.BoolVar(&cfg.offline, "offline", false, "offline mode: only use local dictionaries, no network")
+	flag.BoolVar(&cfg.online, "online", false, "online mode: skip offline dictionary, fetch from network")
 	flag.BoolVar(&cfg.updateDict, "update-dict", false, "download and install offline dictionaries")
 	flag.BoolVar(&cfg.dictStatus, "dict-status", false, "show offline dictionary status")
+	flag.BoolVar(&cfg.genConfig, "generate-config", false, "generate default config file")
+	flag.StringVar(&cfg.modeFlag, "mode", "", "set default mode (auto/offline/online) and save to config")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: bl [flags] <text>\n\nFlags:\n")
 		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\nConfig:\n")
+		fmt.Fprintf(os.Stderr, "  Config file: ~/.config/bl/config.json\n")
+		fmt.Fprintf(os.Stderr, "  Use --mode offline  to permanently switch to offline mode\n")
+		fmt.Fprintf(os.Stderr, "  Use --mode online   to permanently switch to online mode\n")
+		fmt.Fprintf(os.Stderr, "  Use --mode auto     to restore default (try offline, then online)\n")
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "  bl hello                    Youdao EN<->ZH (default)\n")
 		fmt.Fprintf(os.Stderr, "  bl -g Haus                  German dictionary\n")
@@ -53,6 +65,8 @@ func parseFlags() config {
 		fmt.Fprintf(os.Stderr, "  bl -o hello                 single-line output\n")
 		fmt.Fprintf(os.Stderr, "  bl -g -j Haus               German + JSON\n")
 		fmt.Fprintf(os.Stderr, "  bl --offline hello          offline mode only\n")
+		fmt.Fprintf(os.Stderr, "  bl --online hello           skip offline dict\n")
+		fmt.Fprintf(os.Stderr, "  bl --mode offline           set offline as default\n")
 		fmt.Fprintf(os.Stderr, "  bl --update-dict            download offline dictionaries\n")
 		fmt.Fprintf(os.Stderr, "  bl --dict-status            show offline dictionary status\n")
 	}
@@ -66,7 +80,7 @@ func parseFlags() config {
 	return cfg
 }
 
-func outputFmt(cfg config) dict.Format {
+func outputFmt(cfg runConfig) dict.Format {
 	if cfg.json {
 		return dict.FormatJSON
 	}
@@ -77,32 +91,84 @@ func outputFmt(cfg config) dict.Format {
 }
 
 func main() {
-	cfg := parseFlags()
+	rc := parseFlags()
 
-	// Handle --update-dict (download offline dictionaries)
-	if cfg.updateDict {
+	// Load config
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: config load: %v\n", err)
+		cfg = config.DefaultConfig()
+	}
+
+	// --generate-config: create default config file
+	if rc.genConfig {
+		created, err := config.GenerateConfig()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		if created {
+			path, _ := config.ConfigPath()
+			fmt.Printf("Created default config at %s\n", path)
+		}
+		return
+	}
+
+	// --mode: set default mode and save to config
+	if rc.modeFlag != "" {
+		if !config.IsValidMode(rc.modeFlag) {
+			fmt.Fprintf(os.Stderr, "error: invalid mode %q (use: auto, offline, online)\n", rc.modeFlag)
+			os.Exit(1)
+		}
+		cfg.Mode = config.Mode(rc.modeFlag)
+		if err := config.Save(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: save config: %v\n", err)
+			os.Exit(1)
+		}
+		path, _ := config.ConfigPath()
+		fmt.Printf("Set default mode to %q in %s\n", cfg.Mode, path)
+		return
+	}
+
+	// --update-dict: download offline dictionaries
+	if rc.updateDict {
 		updateDictCmd()
 		return
 	}
 
-	// Handle --dict-status (show offline dictionary info)
-	if cfg.dictStatus {
+	// --dict-status: show offline dictionary info
+	if rc.dictStatus {
 		dictStatusCmd()
 		return
 	}
 
-	source := dict.NewSourceByName(cfg.source)
+	// Determine effective mode: CLI flag > env var > config file > default
+	useOffline := false
+	switch {
+	case rc.offline:
+		useOffline = true
+	case rc.online:
+		useOffline = false
+	default:
+		envMode := os.Getenv("BL_MODE")
+		if envMode != "" {
+			useOffline = config.Mode(envMode) == config.ModeOffline
+		} else {
+			useOffline = cfg.Mode == config.ModeOffline
+		}
+	}
+
+	source := dict.NewSourceByName(rc.source)
 	if source == nil {
-		fmt.Fprintf(os.Stderr, "unknown source: %s (use youdao or woerter-net)\n", cfg.source)
+		fmt.Fprintf(os.Stderr, "unknown source: %s (use youdao or woerter-net)\n", rc.source)
 		os.Exit(1)
 	}
 
-	dbPath := cachePath(cfg.noCache)
+	dbPath := cachePath(rc.noCache)
 
-	// Try to open offline dictionary if --offline is set
 	var offlineDict *dict.OfflineDictionary
-	if cfg.offline {
-		od, err := openOfflineDict(source.Name(), cfg.text)
+	if useOffline {
+		od, err := openOfflineDict(source.Name(), rc.text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
@@ -110,17 +176,17 @@ func main() {
 		offlineDict = od
 	}
 
-	client, err := dict.NewRdictWithOffline(source, dbPath, offlineDict, cfg.offline)
+	client, err := dict.NewRdictWithOffline(source, dbPath, offlineDict, useOffline)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	defer client.Close()
 
-	outfmt := outputFmt(cfg)
+	outfmt := outputFmt(rc)
 
-	if cfg.text != "" {
-		output(client, cfg.text, outfmt)
+	if rc.text != "" {
+		output(client, rc.text, outfmt)
 		return
 	}
 
@@ -138,10 +204,9 @@ func main() {
 		}
 	}
 
-	interactiveMode(client, outfmt, cfg.offline, source.Name())
+	interactiveMode(client, outfmt, useOffline, source.Name())
 }
 
-// openOfflineDict opens the offline dictionary for the given source and query text.
 func openOfflineDict(sourceName, text string) (*dict.OfflineDictionary, error) {
 	dir, err := dict.DictDir()
 	if err != nil {
@@ -158,7 +223,6 @@ func openOfflineDict(sourceName, text string) (*dict.OfflineDictionary, error) {
 	return od, nil
 }
 
-// updateDictCmd downloads and installs offline dictionaries.
 func updateDictCmd() {
 	baseURL := os.Getenv("BL_DICT_URL")
 	if baseURL == "" {
@@ -197,7 +261,6 @@ Or build your own dictionaries from word lists:
 	fmt.Println("Update complete.")
 }
 
-// dictStatusCmd shows installed offline dictionary information.
 func dictStatusCmd() {
 	dir, err := dict.DictDir()
 	if err != nil {
@@ -208,7 +271,6 @@ func dictStatusCmd() {
 	pairs := []string{"de-en", "en-zh", "zh-en"}
 	anyFound := false
 	for _, lang := range pairs {
-		path := filepath.Join(dir, lang+".db")
 		od, err := dict.NewOfflineDict(dir, lang)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %s: error opening: %v\n", lang, err)
@@ -221,9 +283,9 @@ func dictStatusCmd() {
 		entries, size, err := od.Stats()
 		od.Close()
 		if err != nil {
-			fmt.Printf("  %s: %s  (%d bytes)\n", lang, path, size)
+			fmt.Printf("  %s:  (%d bytes)\n", lang, size)
 		} else {
-			fmt.Printf("  %s: %s  (%d entries, %d bytes)\n", lang, path, entries, size)
+			fmt.Printf("  %s:  (%d entries, %d bytes)\n", lang, entries, size)
 		}
 		anyFound = true
 	}
@@ -231,6 +293,12 @@ func dictStatusCmd() {
 		fmt.Println("No offline dictionaries installed.")
 		fmt.Println("Run 'bl --update-dict' to download, or build one with 'go run scripts/build_dict/'")
 	}
+	// Show current config mode
+	cfg, _ := config.Load()
+	path, _ := config.ConfigPath()
+	fmt.Printf("\nDefault mode: %s\n", cfg.Mode)
+	fmt.Printf("Config file: %s\n", path)
+	fmt.Printf("Env override: BL_MODE=%s\n", os.Getenv("BL_MODE"))
 }
 
 func downloadFile(dest, url string) error {
@@ -347,8 +415,6 @@ func interactiveMode(client *dict.Rdict, fmt_ dict.Format, offline bool, sourceN
 			fmt.Print(prompt)
 			continue
 		}
-		// In interactive offline mode, we need to re-open the dict for each query
-		// to determine the correct language direction
 		if offline {
 			od, err := openOfflineDict(sourceName, line)
 			if err != nil {
@@ -356,10 +422,9 @@ func interactiveMode(client *dict.Rdict, fmt_ dict.Format, offline bool, sourceN
 				fmt.Print(prompt)
 				continue
 			}
-			// Create a temporary client with this offline dict
 			tmpClient, err := dict.NewRdictWithOffline(
 				dict.NewSourceByName(sourceName),
-				"", // no cache in offline interactive
+				"",
 				od,
 				true,
 			)
