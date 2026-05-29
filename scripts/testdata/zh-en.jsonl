@@ -1,0 +1,10 @@
+{"word":"你好","definitions":["hello","hi","how do you do"],"type":"to_english","examples":[["你好，好久不见","Hello, long time no see"],["你好吗？","How are you?"]]}
+{"word":"世界","definitions":["world"],"type":"to_english","examples":[["世界很大","The world is big"]]}
+{"word":"书","definitions":["book"],"type":"to_english","examples":[["这本书很有趣","This book is very interesting"]]}
+{"word":"房子","definitions":["house","building"],"type":"to_english"}
+{"word":"狗","definitions":["dog"],"type":"to_english"}
+{"word":"猫","definitions":["cat"],"type":"to_english"}
+{"word":"水","definitions":["water"],"type":"to_english"}
+{"word":"学校","definitions":["school"],"type":"to_english"}
+{"word":"汽车","definitions":["car","automobile"],"type":"to_english"}
+{"word":"食物","definitions":["food"],"type":"to_english"}

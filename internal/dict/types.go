@@ -146,6 +146,14 @@ func (e *HttpError) Error() string {
 	return fmt.Sprintf("HTTP %d from %s while fetching %q", e.Code, e.Source, e.Word)
 }
 
+// OfflineUnavailable is returned when --offline mode is active and the word
+// is not found in the offline dictionary.
+type OfflineUnavailable struct{ word string }
+
+func (e *OfflineUnavailable) Error() string {
+	return fmt.Sprintf("word %q not found in offline dictionary", e.word)
+}
+
 func IsCJK(text string) bool {
 	for _, r := range text {
 		if r >= 0x4E00 && r <= 0x9FFF {
