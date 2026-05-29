@@ -89,7 +89,7 @@ User Input
 
 This is the central package. It contains:
 
-- **Data types** (`types.go`): All domain structs plus `TranslationData` (a tagged union matching Rust serde's `{"type":"to_chinese","data":{...}}` format), error types (`HttpError`, `NoTranslationResults`, `OfflineUnavailable`), and utility functions (`IsCJK`)
+- **Data types** (`types.go`): All domain structs plus `TranslationData` (a tagged union with JSON format `{"type":"to_chinese","data":{...}}`), error types (`HttpError`, `NoTranslationResults`, `OfflineUnavailable`), and utility functions (`IsCJK`)
 - **Interface** (`source.go`): `DictionarySource` — the single abstraction point for adding new dictionaries
 - **Offline dictionary** (`offline.go`): `OfflineDictionary` — read-only SQLite databases with zlib-compressed TranslationData BLOBs. Supports three language pairs: `de-en`, `en-zh`, `zh-en`. Language selection by `LangForSource()` using source name + CJK detection.
 - **Sources** (`youdao.go`, `german.go`): Two implementations of `DictionarySource`
@@ -97,7 +97,7 @@ This is the central package. It contains:
 
 ### `internal/cache` — SQLite cache layer
 
-Stores translation results as raw JSON strings. Uses `modernc.org/sqlite` (pure Go — no CGO). Communicates with `dict` via raw strings to avoid circular imports. The table schema is `cache_results(text TEXT PRIMARY KEY, data TEXT NOT NULL)` — identical to the Rust original.
+Stores translation results as raw JSON strings. Uses `modernc.org/sqlite` (pure Go — no CGO). Communicates with `dict` via raw strings to avoid circular imports. The table schema is `cache_results(text TEXT PRIMARY KEY, data TEXT NOT NULL)`.
 
 ### `internal/config` — Persistent configuration
 
@@ -166,7 +166,7 @@ Uses long-polling via `telegram-bot-api/v5`. Responds to `/translate <text>` and
 | `encoding/json` (stdlib) | JSON serialization | Zero dependency |
 | `flag` (stdlib) | CLI argument parsing | Zero dependency |
 | `compress/zlib` (stdlib) | Offline dictionary BLOB compression | Zero dependency |
-| `github.com/PuerkitoBio/goquery` | HTML parsing with CSS selectors | jQuery-like API, exactly replaces Rust's `scraper` crate |
+| `github.com/PuerkitoBio/goquery` | HTML parsing with CSS selectors | jQuery-like API for goquery-based HTML extraction |
 | `modernc.org/sqlite` | SQLite database | Pure Go implementation, no CGO required |
 | `github.com/go-telegram-bot-api/telegram-bot-api/v5` | Telegram Bot API | Most maintained Go Telegram library |
 
@@ -250,7 +250,7 @@ File location: `~/.config/bl/config.json`
 
 ## JSON Cache Format
 
-The cache stores `TranslationData` in a tagged JSON format compatible with Rust serde:
+The cache stores `TranslationData` in a tagged JSON format:
 
 ```json
 {"type":"to_chinese","data":{"input_text":"hello","pronunciation":{...},"meanings":[...],"examples":[...]}}
@@ -260,20 +260,4 @@ The cache stores `TranslationData` in a tagged JSON format compatible with Rust 
 
 This is produced/consumed by `TranslationData.MarshalJSON()` / `TranslationData.UnmarshalJSON()` in `types.go`.
 
-## Cross-Reference: Rust Original
 
-This Go rewrite (named **bl**) maps directly from the Rust project at https://github.com/Guanran928/rdict:
-
-| Rust Crate | Go Package | Key Difference |
-|-----------|-----------|----------------|
-| `rdict-core/src/parse.rs` | `internal/dict/types.go` | Rust `enum` → Go tagged struct with custom JSON |
-| `rdict-core/src/source.rs` | `internal/dict/source.go` | Rust `trait` → Go `interface` |
-| — | `internal/dict/offline.go` | **New**: offline dictionaries (not in Rust original) |
-| — | `internal/config/config.go` | **New**: persistent config (not in Rust original) |
-| — | `scripts/build_dict/main.go` | **New**: dictionary builder (not in Rust original) |
-| `rdict-core/src/youdao.rs` | `internal/dict/youdao.go` | Rust `scraper` CSS selectors → Go `goquery` CSS selectors |
-| `rdict-core/src/german.rs` | `internal/dict/german.go` | Same logic, different syntax |
-| `rdict-core/src/rdict.rs` | `internal/dict/rdict.go` | Rust async `reqwest` + `sqlx` → Go sync `net/http` + `database/sql` |
-| `rdict-core/src/lib.rs` | `internal/dict/types.go` | Rust `thiserror` enum → Go error types |
-| `rdict-cli/src/main.rs` | `main.go` | Rust `clap` + `rustyline` → Go `flag` + `bufio.Scanner` |
-| `rdict-telegram/src/main.rs` | `cmd/telegram/main.go` | Rust `teloxide` → Go `telegram-bot-api/v5` |

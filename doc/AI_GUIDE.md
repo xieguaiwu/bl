@@ -146,7 +146,7 @@ type TranslationData struct {
 
 **Critical invariant:** Exactly one pointer is non-nil at any time, matching `Type`. Code must not assume that a non-nil pointer implies a specific `Type`. Use type switches or `switch data.Type` for dispatch.
 
-**JSON format** (compatible with Rust serde-tagged):
+**JSON format** (tagged union):
 
 ```json
 {"type":"to_chinese","data":{...}}
@@ -166,7 +166,7 @@ All implement the `error` interface. `NoTranslationResults` is distinct from a r
 
 ### 2.3 Optional Fields
 
-In the structs, empty string (`""`) means "absent". There are no pointer-to-string fields. This differs from Rust's `Option<String>` and C++'s `std::optional<std::string>`. When adding fields, prefer zero-value semantics over pointers for simplicity.
+In the structs, empty string (`""`) means "absent". There are no pointer-to-string fields. When adding fields, prefer zero-value semantics over pointers for simplicity.
 
 ## 3. HTML Parsing Rules
 

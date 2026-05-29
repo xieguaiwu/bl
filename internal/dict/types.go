@@ -67,8 +67,8 @@ func (t TranslationType) String() string {
 	return "unknown"
 }
 
-// TranslationData holds exactly one variant and matches the serde-tagged
-// JSON format {"type":"to_chinese","data":{...}} used by the Rust original.
+// TranslationData holds exactly one variant using a tagged JSON format:
+// {"type":"to_chinese","data":{...}} / {"type":"to_english","data":{...}} / {"type":"german","data":{...}}.
 type TranslationData struct {
 	Type      TranslationType
 	ToChinese *ToChinese
