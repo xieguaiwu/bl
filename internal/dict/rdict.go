@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"bl/internal/cache"
 )
@@ -24,7 +25,7 @@ func NewRdict(source DictionarySource, cacheDB string) (*Rdict, error) {
 		return nil, fmt.Errorf("init cache: %w", err)
 	}
 	return &Rdict{
-		client: &http.Client{},
+		client: &http.Client{Timeout: 15 * time.Second},
 		source: source,
 		cache:  c,
 	}, nil

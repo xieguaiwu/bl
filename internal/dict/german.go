@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -18,13 +20,22 @@ func NewWoerterNetSource(baseURL string) *WoerterNetSource {
 
 func (s *WoerterNetSource) Name() string { return "woerter-net" }
 
+func isUpper(s string) bool {
+	if s == "" {
+		return false
+	}
+	r, _ := utf8.DecodeRuneInString(s)
+	return unicode.IsUpper(r)
+}
+
 func guessWordType(word string) string {
 	lower := strings.ToLower(word)
 	switch {
 	case strings.HasSuffix(lower, "ieren"),
 		strings.HasSuffix(lower, "eln"),
-		strings.HasSuffix(lower, "ern"),
-		strings.HasSuffix(lower, "en"):
+		strings.HasSuffix(lower, "ern"):
+		return "verb"
+	case strings.HasSuffix(lower, "en") && !isUpper(word):
 		return "verb"
 	case strings.HasSuffix(lower, "lich"),
 		strings.HasSuffix(lower, "isch"),
@@ -111,11 +122,12 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 				gender  string
 			}{
 				{"das", "neuter"},
+				{"das", "neutral"},
 				{"der", "masculine"},
 				{"die", "feminine"},
 			} {
-				if strings.Contains(aLower, fmt.Sprintf("article is \"%s\"", candidate.article)) ||
-					strings.Contains(aLower, fmt.Sprintf("\"%s\" is %s", word, candidate.gender)) {
+			if strings.Contains(aLower, fmt.Sprintf("article is \"%s\"", candidate.article)) ||
+				strings.Contains(aLower, fmt.Sprintf("\"%s\" is %s", strings.ToLower(word), candidate.gender)) {
 					entry.Article = candidate.article
 					entry.Gender = candidate.gender
 					break
@@ -134,25 +146,30 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 		entry.Phonetic = ipa
 	}
 
-	if len(entry.Definitions) == 0 {
-		parseEnglishFromVStck(doc, entry)
-	}
-
 	exCount := 0
 	doc.Find("ul.rLstGt li").Each(func(_ int, li *goquery.Selection) {
 		if exCount >= 3 {
 			return
 		}
-		allText := strings.TrimSpace(li.Text())
 		english := ""
-		if span := li.Find("span").Last(); span.Length() > 0 {
-			english = strings.TrimSpace(span.Text())
+		usedLangEn := false
+		if enSpan := li.Find("span[lang=\"en\"]").Last(); enSpan.Length() > 0 {
+			english = strings.TrimSpace(enSpan.Text())
+			usedLangEn = true
 		}
-		german := allText
-		if english != "" {
-			german = strings.TrimSuffix(german, english)
-			german = strings.TrimSpace(german)
+		if english == "" {
+			if span := li.Find("span").Last(); span.Length() > 0 {
+				english = strings.TrimSpace(span.Text())
+			}
 		}
+		germanClone := li.Clone()
+		if usedLangEn {
+			germanClone.Find("span[lang=\"en\"]").Remove()
+		}
+		if !usedLangEn && english != "" {
+			germanClone.Find("span").Last().Remove()
+		}
+		german := strings.TrimSpace(germanClone.Text())
 		if len(german) > 5 && len(english) > 5 {
 			entry.Examples = append(entry.Examples, [2]string{german, english})
 			exCount++
@@ -242,48 +259,56 @@ func extractBodyMeta(doc *goquery.Document, entry *GermanEntry) {
 	}
 }
 
+func addEnglishTranslations(text string, entry *GermanEntry) {
+	text = strings.ReplaceAll(text, "\u00a0", " ")
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
+	for _, t := range splitEnglishTranslations(text) {
+		t = strings.TrimSpace(t)
+		if t == "" {
+			continue
+		}
+		// Deduplicate
+		dup := false
+		for _, d := range entry.Definitions {
+			if d == t {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			entry.Definitions = append(entry.Definitions, t)
+		}
+	}
+}
+
 func parseEnglishTranslations(doc *goquery.Document, entry *GermanEntry) {
 	// Tier 1: comma-separated English in vStckKrz <span lang="en">
 	if enSpan := doc.Find("#vStckKrz [lang=\"en\"]").First(); enSpan.Length() > 0 {
-		text := enSpan.Text()
-		text = strings.ReplaceAll(text, "\u00a0", " ")
-		text = strings.TrimSpace(text)
-		if text != "" {
-			for _, t := range splitEnglishTranslations(text) {
-				if t != "" {
-					entry.Definitions = append(entry.Definitions, t)
-				}
-			}
-		}
+		addEnglishTranslations(enSpan.Text(), entry)
 	}
 	if len(entry.Definitions) == 0 {
 		// Tier 2: individual English definitions in <dd lang="en">
 		doc.Find("dd[lang=\"en\"]").Each(func(_ int, s *goquery.Selection) {
-			text := s.Text()
-			text = strings.ReplaceAll(text, "\u00a0", " ")
-			text = strings.TrimSpace(text)
-			if text != "" {
-				for _, t := range splitEnglishTranslations(text) {
-					if t != "" {
-						entry.Definitions = append(entry.Definitions, t)
-					}
-				}
-			}
+			addEnglishTranslations(s.Text(), entry)
 		})
 	}
 	if len(entry.Definitions) == 0 {
-		// Tier 3: any <span> with lang=en (broader, catches edge cases)
+		// Tier 3: individual English definitions from dt > span[lang="en"] within definition lists
+		doc.Find("dt > span[lang=\"en\"]").Each(func(_ int, s *goquery.Selection) {
+			addEnglishTranslations(s.Text(), entry)
+		})
+	}
+	if len(entry.Definitions) == 0 {
+		// Tier 4: last resort — look for English flag img and extract translations from its parent
+		parseEnglishFromVStck(doc, entry)
+	}
+	if len(entry.Definitions) == 0 {
+		// Tier 5: any <span> with lang=en (broadest, catches edge cases)
 		doc.Find("span[lang=\"en\"]").Each(func(_ int, s *goquery.Selection) {
-			text := s.Text()
-			text = strings.ReplaceAll(text, "\u00a0", " ")
-			text = strings.TrimSpace(text)
-			if text != "" {
-				for _, t := range splitEnglishTranslations(text) {
-					if t != "" {
-						entry.Definitions = append(entry.Definitions, t)
-					}
-				}
-			}
+			addEnglishTranslations(s.Text(), entry)
 		})
 	}
 }
@@ -293,25 +318,25 @@ func parseEnglishFromVStck(doc *goquery.Document, entry *GermanEntry) {
 	if vStck.Length() == 0 {
 		return
 	}
-	// Look for English text after known patterns: en.svg flag, "English" alt text
+	// Look for English flag img: try to extract the sibling or parent span[lang="en"]
 	vStck.Find("img[alt=\"English\" i]").Each(func(_ int, img *goquery.Selection) {
 		if len(entry.Definitions) > 0 {
 			return
 		}
-		parent := img.Parent()
-		if parent.Length() == 0 {
-			parent = img.ParentsFiltered("span").First()
+		// First try: find the nearest span[lang="en"] in the same parent
+		if langSpan := img.Parent().Find("span[lang=\"en\"]").First(); langSpan.Length() > 0 {
+			addEnglishTranslations(langSpan.Text(), entry)
+			return
 		}
+		// Second try: look for span[lang="en"] anywhere in vStck
+		if langSpan := vStck.Find("span[lang=\"en\"]").First(); langSpan.Length() > 0 {
+			addEnglishTranslations(langSpan.Text(), entry)
+			return
+		}
+		// Last try: use parent text (least precise, catches non-standard layouts)
+		parent := img.Parent()
 		if parent.Length() > 0 {
-			text := strings.TrimSpace(parent.Text())
-			text = strings.ReplaceAll(text, "\u00a0", " ")
-			if text != "" {
-				for _, t := range splitEnglishTranslations(text) {
-					if t != "" {
-						entry.Definitions = append(entry.Definitions, t)
-					}
-				}
-			}
+			addEnglishTranslations(parent.Text(), entry)
 		}
 	})
 }
@@ -328,22 +353,4 @@ func splitEnglishTranslations(text string) []string {
 	return result
 }
 
-func fallbackGermanDefinitions(doc *goquery.Document, entry *GermanEntry) {
-	doc.Find("i").Each(func(_ int, el *goquery.Selection) {
-		if len(entry.Definitions) >= 8 {
-			return
-		}
-		text := strings.TrimSpace(el.Text())
-		if len(text) > 10 && len(text) < 300 &&
-			!strings.HasPrefix(text, "http") &&
-			!strings.HasPrefix(text, "@") {
-			clean := strings.TrimSpace(text)
-			for _, d := range entry.Definitions {
-				if d == clean {
-					return
-				}
-			}
-			entry.Definitions = append(entry.Definitions, clean)
-		}
-	})
-}
+
