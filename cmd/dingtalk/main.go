@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"bl/internal/dict"
@@ -45,7 +44,7 @@ func main() {
 	sourceName := flag.String("source", "", "dictionary source (youdao, woerter-net)")
 	flag.Parse()
 
-	source := resolveSource(*sourceName)
+	source := dict.NewSourceByName(*sourceName)
 	client, err := dict.NewRdict(source, "")
 	if err != nil {
 		log.Fatalf("create client: %v", err)
@@ -91,26 +90,16 @@ func main() {
 	log.Printf("DingTalk bot listening on %s", *addr)
 	if *certFile != "" && *keyFile != "" {
 		log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, nil))
+	} else if *certFile != "" || *keyFile != "" {
+		log.Fatal("both -cert and -key must be provided for TLS, falling back to plain HTTP")
 	} else {
 		log.Fatal(http.ListenAndServe(*addr, nil))
 	}
 }
 
-func resolveSource(name string) dict.DictionarySource {
-	if name == "" {
-		name = os.Getenv("BL_SOURCE")
-	}
-	switch strings.ToLower(name) {
-	case "woerter-net":
-		return dict.NewWoerterNetSource("https://www.verbformen.com")
-	default:
-		return dict.NewYoudaoSource("https://m.youdao.com")
-	}
-}
-
 func extractQuery(content string) string {
 	content = strings.TrimSpace(content)
-	if idx := strings.Index(content, " "); idx >= 0 {
+	if idx := strings.IndexAny(content, " \n\t"); idx >= 0 {
 		prefix := content[:idx]
 		if strings.HasPrefix(prefix, "@") {
 			content = strings.TrimSpace(content[idx+1:])

@@ -260,5 +260,5 @@ go vet ./...
 ./bl -g -j laufen            # German + JSON
 echo "world" | ./bl           # pipe mode
 TELEGRAM_BOT_TOKEN=xxx ./bl-telegram
-DINGTALK_URL=https://xxx.ngrok.io ./bl-dingtalk
+./bl-dingtalk -addr :8080           # then tunnel :8080 via ngrok
 ```

@@ -67,7 +67,7 @@ func outputFmt(cfg config) dict.Format {
 func main() {
 	cfg := parseFlags()
 
-	source := newSource(cfg.source)
+	source := dict.NewSourceByName(cfg.source)
 	if source == nil {
 		fmt.Fprintf(os.Stderr, "unknown source: %s (use youdao or woerter-net)\n", cfg.source)
 		os.Exit(1)
@@ -102,15 +102,7 @@ func main() {
 	interactiveMode(client, outfmt)
 }
 
-func newSource(name string) dict.DictionarySource {
-	switch strings.ToLower(name) {
-	case "youdao":
-		return dict.NewYoudaoSource("https://m.youdao.com")
-	case "woerter-net":
-		return dict.NewWoerterNetSource("https://www.verbformen.com")
-	}
-	return nil
-}
+
 
 func cachePath(noCache bool) string {
 	if noCache {

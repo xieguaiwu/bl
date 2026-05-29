@@ -1,6 +1,7 @@
 package render
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -228,7 +229,11 @@ func renderGermanOneliner(e *dict.GermanEntry) string {
 func RenderTranslation(data *dict.TranslationData, fmt_ dict.Format, colored bool) string {
 	switch fmt_ {
 	case dict.FormatJSON:
-		return ""
+		b, err := json.MarshalIndent(data, "", "  ")
+		if err != nil {
+			return ""
+		}
+		return string(b)
 	case dict.FormatOneliner:
 		return RenderOneliner(data)
 	default:

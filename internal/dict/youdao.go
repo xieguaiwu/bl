@@ -2,6 +2,7 @@ package dict
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,7 +19,7 @@ func NewYoudaoSource(baseURL string) *YoudaoSource {
 func (s *YoudaoSource) Name() string { return "youdao" }
 
 func (s *YoudaoSource) FetchURL(word string) string {
-	return fmt.Sprintf("%s/result?word=%s&lang=en", s.BaseURL, word)
+	return fmt.Sprintf("%s/result?word=%s&lang=en", s.BaseURL, url.QueryEscape(word))
 }
 
 func (s *YoudaoSource) Parse(word string, html string) (*TranslationData, error) {
@@ -41,17 +42,20 @@ func parseToChinese(inputText string, html string) (*TranslationData, error) {
 
 	result := &ToChinese{InputText: inputText}
 
-	body.Find(".phone_con .per-phone .phonetic").Each(func(i int, s *goquery.Selection) {
-		if i >= 2 {
+	body.Find(".phone_con .per-phone").Each(func(_ int, container *goquery.Selection) {
+		phonetic := container.Find(".phonetic")
+		label := container.Find(".label")
+		if phonetic.Length() == 0 || label.Length() == 0 {
 			return
 		}
-		text := strings.Trim(s.Text(), "/ ")
+		text := strings.Trim(phonetic.Text(), "/ ")
 		if text == "" {
 			return
 		}
-		if i == 0 {
+		labelText := strings.TrimSpace(label.Text())
+		if strings.Contains(labelText, "英") {
 			result.Pronunciation.Uk = text
-		} else {
+		} else if strings.Contains(labelText, "美") {
 			result.Pronunciation.Us = text
 		}
 	})

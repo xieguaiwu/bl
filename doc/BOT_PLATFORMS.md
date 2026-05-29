@@ -6,8 +6,9 @@
 
 | Platform | Status | Lines of Code | 
 |----------|--------|---------------|
-| CLI (direct) | Done | `main.go` (155) |
+| CLI (direct) | Done | `main.go` (195) |
 | Telegram | Done | `cmd/telegram/main.go` (98) |
+| DingTalk | Done | `cmd/dingtalk/main.go` (122) |
 | QQ | Not started | — |
 | WeChat (Official Account) | Not started | — |
 | WeChat Work Bot | Not started | — |
@@ -130,12 +131,11 @@ User → WeChat Server → (HTTP POST) → Your HTTPS Server → (response XML) 
 **Source**: `cmd/dingtalk/main.go` (fully implemented)
 **Deploy**:
   ```bash
-  # Development
-  ngrok http 8080 &
-  DINGTALK_URL=https://xxxx.ngrok.io ./bl-dingtalk
+  # (terminal 1) Start the bot
+  ./bl-dingtalk -addr :8080
 
-  # Production (with TLS)
-  ./bl-dingtalk -addr :443 -cert cert.pem -key privkey.pem
+  # (terminal 2) Tunnel via ngrok
+  ngrok http 8080
   ```
 
 **Data flow**:
@@ -337,11 +337,12 @@ func main() {
 
 ```
 1. Telegram      ✅ Done — keep as reference implementation
-2. QQ Bot         ← Recommended next. Feasible, official, good Go SDK.
-3. QQ Guild       ← Alternative if QQ Bot review is too slow.
-4. Discord        ← If international users are a target.
-5. WeChat OA      ← Only if enterprise account is available.
-6. Personal WeChat ← Never. Risk > reward.
+2. DingTalk      ✅ Done — HTTP callback, zero new deps
+3. QQ Bot         ← Recommended next. Feasible, official, good Go SDK.
+4. QQ Guild       ← Alternative if QQ Bot review is too slow.
+5. Discord        ← If international users are a target.
+6. WeChat OA      ← Only if enterprise account is available.
+7. Personal WeChat ← Never. Risk > reward.
 ```
 
 ### Implementation Roadmap

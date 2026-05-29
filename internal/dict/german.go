@@ -2,6 +2,7 @@ package dict
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -43,6 +44,7 @@ func guessWordType(word string) string {
 
 func (s *WoerterNetSource) FetchURL(word string) string {
 	path := guessWordType(word)
+	word = url.PathEscape(word)
 	switch path {
 	case "verb":
 		path = fmt.Sprintf("conjugation/%s.htm", word)
@@ -106,15 +108,20 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 	})
 
 	bodyText := doc.Find("body").First().Text()
-	head := bodyText
-	if len(head) > 3000 {
-		head = head[:3000]
+	runes := []rune(bodyText)
+	if len(runes) > 3000 {
+		runes = runes[:3000]
 	}
+	head := string(runes)
 	if ipa := extractIPA(head); ipa != "" {
 		entry.Phonetic = ipa
 	}
 
+	defCount := 0
 	doc.Find("i").Each(func(_ int, el *goquery.Selection) {
+		if defCount >= 8 {
+			return
+		}
 		text := strings.TrimSpace(el.Text())
 		if len(text) > 10 && len(text) < 300 &&
 			!strings.HasPrefix(text, "http") &&
@@ -126,14 +133,13 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 				}
 			}
 			entry.Definitions = append(entry.Definitions, clean)
-			if len(entry.Definitions) >= 8 {
-				return
-			}
+			defCount++
 		}
 	})
 
+	exCount := 0
 	doc.Find("ul.rLstGt li").Each(func(_ int, li *goquery.Selection) {
-		if len(entry.Examples) >= 3 {
+		if exCount >= 3 {
 			return
 		}
 		allText := strings.TrimSpace(li.Text())
@@ -148,6 +154,7 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 		}
 		if len(german) > 5 && len(english) > 5 {
 			entry.Examples = append(entry.Examples, [2]string{german, english})
+			exCount++
 		}
 	})
 

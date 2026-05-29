@@ -28,13 +28,7 @@ func main() {
 		sourceName = "youdao"
 	}
 
-	var source dict.DictionarySource
-	switch strings.ToLower(sourceName) {
-	case "woerter-net":
-		source = dict.NewWoerterNetSource("https://www.verbformen.com")
-	default:
-		source = dict.NewYoudaoSource("https://m.youdao.com")
-	}
+	source := dict.NewSourceByName(sourceName)
 
 	client, err := dict.NewRdict(source, "")
 	if err != nil {
