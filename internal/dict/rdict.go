@@ -2,6 +2,7 @@ package dict
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,13 +52,16 @@ func NewRdictWithOffline(source DictionarySource, cacheDB string, offlineSource 
 }
 
 func (r *Rdict) Close() error {
+	var errs []error
 	if err := r.cache.Close(); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 	if r.offline != nil {
-		return r.offline.Close()
+		if err := r.offline.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (r *Rdict) cacheKey(text string) string {

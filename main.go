@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"bl/internal/config"
 	"bl/internal/dict"
@@ -142,19 +143,22 @@ func main() {
 		return
 	}
 
-	// Determine effective mode: CLI flag > env var > config file > default
-	useOffline := false
+	// Determine effective mode: CLI flag > env var > config file > default.
+	// "auto" tries offline first, falls back to online.
+	// "offline" uses only offline dictionary.
+	// "online" skips offline dictionary entirely.
+	mode := config.ModeAuto
 	switch {
 	case rc.offline:
-		useOffline = true
+		mode = config.ModeOffline
 	case rc.online:
-		useOffline = false
+		mode = config.ModeOnline
 	default:
 		envMode := os.Getenv("BL_MODE")
-		if envMode != "" {
-			useOffline = config.Mode(envMode) == config.ModeOffline
+		if envMode != "" && config.IsValidMode(envMode) {
+			mode = config.Mode(envMode)
 		} else {
-			useOffline = cfg.Mode == config.ModeOffline
+			mode = cfg.Mode
 		}
 	}
 
@@ -167,16 +171,25 @@ func main() {
 	dbPath := cachePath(rc.noCache)
 
 	var offlineDict *dict.OfflineDictionary
-	if useOffline {
+	onlyOffline := false
+	switch mode {
+	case config.ModeOffline:
+		onlyOffline = true
+		fallthrough
+	case config.ModeAuto:
+		// Open offline dict for both offline and auto modes.
+		// In auto mode, onlyOffline=false so GetResults falls through to cache→online on miss.
 		od, err := openOfflineDict(source.Name(), rc.text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 		offlineDict = od
+	case config.ModeOnline:
+		// No offline dictionary.
 	}
 
-	client, err := dict.NewRdictWithOffline(source, dbPath, offlineDict, useOffline)
+	client, err := dict.NewRdictWithOffline(source, dbPath, offlineDict, onlyOffline)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -204,7 +217,7 @@ func main() {
 		}
 	}
 
-	interactiveMode(client, outfmt, useOffline, source.Name())
+	interactiveMode(client, outfmt, source.Name())
 }
 
 func openOfflineDict(sourceName, text string) (*dict.OfflineDictionary, error) {
@@ -283,7 +296,7 @@ func dictStatusCmd() {
 		entries, size, err := od.Stats()
 		od.Close()
 		if err != nil {
-			fmt.Printf("  %s:  (%d bytes)\n", lang, size)
+			fmt.Printf("  %s:  stats error: %v\n", lang, err)
 		} else {
 			fmt.Printf("  %s:  (%d entries, %d bytes)\n", lang, entries, size)
 		}
@@ -308,7 +321,8 @@ func downloadFile(dest, url string) error {
 	}
 	req.Header.Set("User-Agent", userAgent)
 
-	resp, err := http.DefaultClient.Do(req)
+	dlClient := &http.Client{Timeout: 60 * time.Second}
+	resp, err := dlClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("http get: %w", err)
 	}
@@ -400,7 +414,7 @@ func isColoredOutput() bool {
 	return term != "" && term != "dumb"
 }
 
-func interactiveMode(client *dict.Rdict, fmt_ dict.Format, offline bool, sourceName string) {
+func interactiveMode(client *dict.Rdict, fmt_ dict.Format, sourceName string) {
 	colored := isColoredOutput()
 	prompt := "[bl]# "
 	if colored {
@@ -412,30 +426,6 @@ func interactiveMode(client *dict.Rdict, fmt_ dict.Format, offline bool, sourceN
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
-			fmt.Print(prompt)
-			continue
-		}
-		if offline {
-			od, err := openOfflineDict(sourceName, line)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				fmt.Print(prompt)
-				continue
-			}
-			tmpClient, err := dict.NewRdictWithOffline(
-				dict.NewSourceByName(sourceName),
-				"",
-				od,
-				true,
-			)
-			if err != nil {
-				od.Close()
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
-				fmt.Print(prompt)
-				continue
-			}
-			output(tmpClient, line, fmt_)
-			tmpClient.Close()
 			fmt.Print(prompt)
 			continue
 		}

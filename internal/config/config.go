@@ -99,14 +99,14 @@ func Save(cfg *Config) error {
 }
 
 // GenerateConfig creates a default config file if one does not exist.
-// Returns true if a new file was created.
+// Returns true if a new file was created, false if it already exists.
 func GenerateConfig() (bool, error) {
 	path, err := ConfigPath()
 	if err != nil {
 		return false, err
 	}
 	if _, err := os.Stat(path); err == nil {
-		return false, fmt.Errorf("config already exists at %s", path)
+		return false, nil // already exists — not an error
 	}
 	if err := Save(DefaultConfig()); err != nil {
 		return false, err
