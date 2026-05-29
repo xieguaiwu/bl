@@ -106,8 +106,6 @@ func main() {
 	interactiveMode(client, outfmt)
 }
 
-
-
 func cachePath(noCache bool) string {
 	if noCache {
 		return ""

@@ -34,14 +34,19 @@ func (r *Rdict) Close() error {
 	return r.cache.Close()
 }
 
+func (r *Rdict) cacheKey(text string) string {
+	return r.source.Name() + ":" + text
+}
+
 func (r *Rdict) GetResults(inputText string) (*FetchedResult, error) {
-	jsonStr, err := r.cache.Get(inputText)
+	key := r.cacheKey(inputText)
+	jsonStr, err := r.cache.Get(key)
 	if err == nil && jsonStr != "" {
 		var data TranslationData
 		if err := json.Unmarshal([]byte(jsonStr), &data); err == nil {
 			return &FetchedResult{Data: data, IsCached: true}, nil
 		}
-		_ = r.cache.Delete(inputText)
+		_ = r.cache.Delete(key)
 	}
 
 	html, err := r.fetchSourceHTML(inputText)
@@ -56,7 +61,7 @@ func (r *Rdict) GetResults(inputText string) (*FetchedResult, error) {
 
 	jsonBytes, err := json.Marshal(data)
 	if err == nil {
-		_ = r.cache.Set(inputText, string(jsonBytes)) // best-effort: don't fail translation on cache write error
+		_ = r.cache.Set(key, string(jsonBytes)) // best-effort: don't fail translation on cache write error
 	}
 
 	return &FetchedResult{Data: *data, IsCached: false}, nil

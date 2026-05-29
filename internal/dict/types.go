@@ -33,6 +33,9 @@ type ToEnglish struct {
 	Examples  []Example `json:"examples"`
 }
 
+// GermanEntry holds data for a German word lookup.
+// Definitions contains English translations (not German definitions) when
+// scraped from the primary source (verbformen.com English pages).
 type GermanEntry struct {
 	Word        string      `json:"word"`
 	Gender      string      `json:"gender,omitempty"`

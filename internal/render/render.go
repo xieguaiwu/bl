@@ -153,7 +153,7 @@ func RenderGermanEntry(entry *dict.GermanEntry, colored bool) string {
 	}
 
 	if len(entry.Definitions) > 0 {
-		fmt.Fprintln(&b, "# Definitions")
+		fmt.Fprintln(&b, "# Translations")
 		for _, def := range entry.Definitions {
 			if colored {
 				fmt.Fprintf(&b, "* %s%s%s\n", ansiGreen, def, ansiReset)
