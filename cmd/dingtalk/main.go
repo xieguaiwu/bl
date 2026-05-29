@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"bl/internal/dict"
 	"bl/internal/render"
@@ -45,6 +46,9 @@ func main() {
 	flag.Parse()
 
 	source := dict.NewSourceByName(*sourceName)
+	if source == nil {
+		log.Fatalf("unknown source: %s", *sourceName)
+	}
 	client, err := dict.NewRdict(source, "")
 	if err != nil {
 		log.Fatalf("create client: %v", err)
@@ -87,13 +91,20 @@ func main() {
 		})
 	})
 
+	srv := &http.Server{
+		Addr:         *addr,
+		Handler:      nil,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
 	log.Printf("DingTalk bot listening on %s", *addr)
 	if *certFile != "" && *keyFile != "" {
-		log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, nil))
+		log.Fatal(srv.ListenAndServeTLS(*certFile, *keyFile))
 	} else if *certFile != "" || *keyFile != "" {
 		log.Fatal("-cert and -key must be provided together for TLS")
 	} else {
-		log.Fatal(http.ListenAndServe(*addr, nil))
+		log.Fatal(srv.ListenAndServe())
 	}
 }
 

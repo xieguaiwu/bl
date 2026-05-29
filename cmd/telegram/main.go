@@ -29,6 +29,9 @@ func main() {
 	}
 
 	source := dict.NewSourceByName(sourceName)
+	if source == nil {
+		log.Fatalf("unknown source: %s", sourceName)
+	}
 
 	client, err := dict.NewRdict(source, "")
 	if err != nil {

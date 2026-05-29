@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -53,10 +54,10 @@ func NewOfflineDict(dbDir, langPair string) (*OfflineDictionary, error) {
 
 // Close closes the database connection.
 func (o *OfflineDictionary) Close() error {
-	if o.db != nil {
-		return o.db.Close()
+	if o == nil || o.db == nil {
+		return nil
 	}
-	return nil
+	return o.db.Close()
 }
 
 // Name returns the unique identifier for this dictionary (e.g. "offline:de-en").
@@ -165,6 +166,7 @@ func CompressEntry(data *TranslationData) ([]byte, error) {
 	}
 	var buf bytes.Buffer
 	w := zlib.NewWriter(&buf)
+	defer w.Close()
 	if _, err := w.Write(jsonBytes); err != nil {
 		return nil, err
 	}
@@ -203,19 +205,30 @@ func CreateOfflineDict(dbPath string, entries map[string]*TranslationData) error
 	}
 	stmt, err := tx.Prepare("INSERT OR REPLACE INTO entries (query, data) VALUES (?, ?)")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 
+	var skipped int
 	for word, td := range entries {
 		compressed, err := CompressEntry(td)
 		if err != nil {
+			skipped++
 			continue
 		}
 		if _, err := stmt.Exec(word, compressed); err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				return fmt.Errorf("insert %q: %w (rollback: %v)", word, err, rbErr)
+			}
 			return fmt.Errorf("insert %q: %w", word, err)
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+	if skipped > 0 {
+		log.Printf("CreateOfflineDict: %d / %d entries skipped due to compression errors", skipped, len(entries))
+	}
+	return nil
 }

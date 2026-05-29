@@ -175,16 +175,20 @@ func main() {
 	switch mode {
 	case config.ModeOffline:
 		onlyOffline = true
-		fallthrough
-	case config.ModeAuto:
-		// Open offline dict for both offline and auto modes.
-		// In auto mode, onlyOffline=false so GetResults falls through to cache→online on miss.
 		od, err := openOfflineDict(source.Name(), rc.text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 		offlineDict = od
+	case config.ModeAuto:
+		// Auto mode: try offline, fall back to online on miss.
+		od, err := openOfflineDict(source.Name(), rc.text)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: offline dict not available, falling back to online: %v\n", err)
+		} else {
+			offlineDict = od
+		}
 	case config.ModeOnline:
 		// No offline dictionary.
 	}
@@ -268,8 +272,12 @@ Or build your own dictionaries from word lists:
 			fmt.Fprintf(os.Stderr, "  failed: %v\n", err)
 			continue
 		}
-		fi, _ := os.Stat(dest)
-		fmt.Printf("  done (%d bytes)\n", fi.Size())
+		fi, err := os.Stat(dest)
+		if err != nil {
+			fmt.Printf("  done (unknown size: %v)\n", err)
+		} else {
+			fmt.Printf("  done (%d bytes)\n", fi.Size())
+		}
 	}
 	fmt.Println("Update complete.")
 }

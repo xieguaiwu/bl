@@ -85,6 +85,8 @@ func (d *TranslationData) MarshalJSON() ([]byte, error) {
 		data = d.ToEnglish
 	case TypeGerman:
 		data = d.German
+	default:
+		return nil, fmt.Errorf("unknown translation type: %d", d.Type)
 	}
 	return json.Marshal(map[string]interface{}{
 		"type": d.Type.String(),

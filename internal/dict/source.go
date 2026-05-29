@@ -11,9 +11,11 @@ type DictionarySource interface {
 // NewSourceByName creates a DictionarySource from a name string.
 func NewSourceByName(name string) DictionarySource {
 	switch strings.ToLower(name) {
+	case "youdao":
+		return NewYoudaoSource("https://m.youdao.com")
 	case "woerter-net":
 		return NewWoerterNetSource("https://www.verbformen.com")
 	default:
-		return NewYoudaoSource("https://m.youdao.com")
+		return nil
 	}
 }
