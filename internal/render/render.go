@@ -231,7 +231,7 @@ func RenderTranslation(data *dict.TranslationData, fmt_ dict.Format, colored boo
 	case dict.FormatJSON:
 		b, err := json.MarshalIndent(data, "", "  ")
 		if err != nil {
-			return ""
+			return fmt.Sprintf("json error: %v", err)
 		}
 		return string(b)
 	case dict.FormatOneliner:

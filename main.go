@@ -190,6 +190,9 @@ func interactiveMode(client *dict.Rdict, fmt_ dict.Format) {
 		output(client, line, fmt_)
 		fmt.Print(prompt)
 	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	}
 }
 
 

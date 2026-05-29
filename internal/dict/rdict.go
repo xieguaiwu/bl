@@ -56,7 +56,7 @@ func (r *Rdict) GetResults(inputText string) (*FetchedResult, error) {
 
 	jsonBytes, err := json.Marshal(data)
 	if err == nil {
-		_ = r.cache.Set(inputText, string(jsonBytes))
+		_ = r.cache.Set(inputText, string(jsonBytes)) // best-effort: don't fail translation on cache write error
 	}
 
 	return &FetchedResult{Data: *data, IsCached: false}, nil

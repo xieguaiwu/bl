@@ -41,7 +41,7 @@ func main() {
 	addr := flag.String("addr", ":8080", "listen address")
 	certFile := flag.String("cert", "", "TLS cert file (optional)")
 	keyFile := flag.String("key", "", "TLS key file (optional)")
-	sourceName := flag.String("source", "", "dictionary source (youdao, woerter-net)")
+	sourceName := flag.String("source", "youdao", "dictionary source (youdao, woerter-net)")
 	flag.Parse()
 
 	source := dict.NewSourceByName(*sourceName)
@@ -91,7 +91,7 @@ func main() {
 	if *certFile != "" && *keyFile != "" {
 		log.Fatal(http.ListenAndServeTLS(*addr, *certFile, *keyFile, nil))
 	} else if *certFile != "" || *keyFile != "" {
-		log.Fatal("both -cert and -key must be provided for TLS, falling back to plain HTTP")
+		log.Fatal("-cert and -key must be provided together for TLS")
 	} else {
 		log.Fatal(http.ListenAndServe(*addr, nil))
 	}
