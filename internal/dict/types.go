@@ -21,10 +21,10 @@ type Meaning struct {
 }
 
 type ToChinese struct {
-	InputText     string         `json:"input_text"`
+	InputText     string        `json:"input_text"`
 	Pronunciation Pronunciation `json:"pronunciation"`
-	Meanings      []Meaning      `json:"meanings"`
-	Examples      []Example      `json:"examples"`
+	Meanings      []Meaning     `json:"meanings"`
+	Examples      []Example     `json:"examples"`
 }
 
 type ToEnglish struct {

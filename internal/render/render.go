@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	ansiReset   = "\033[0m"
-	ansiGreen   = "\033[32m"
-	ansiMagenta = "\033[35m"
-	ansiCyan    = "\033[36m"
-	ansiYellow  = "\033[33m"
+	ansiReset       = "\033[0m"
+	ansiGreen       = "\033[32m"
+	ansiMagenta     = "\033[35m"
+	ansiCyan        = "\033[36m"
+	ansiYellow      = "\033[33m"
 	ansiBrightBlack = "\033[90m"
 )
 

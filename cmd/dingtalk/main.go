@@ -29,8 +29,8 @@ type dingtalkRequest struct {
 }
 
 type dingtalkResponse struct {
-	MsgType string        `json:"msgtype"`
-	Text    dingtalkText  `json:"text"`
+	MsgType string       `json:"msgtype"`
+	Text    dingtalkText `json:"text"`
 }
 
 type dingtalkText struct {

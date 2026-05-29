@@ -192,5 +192,3 @@ func interactiveMode(client *dict.Rdict, fmt_ dict.Format) {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	}
 }
-
-

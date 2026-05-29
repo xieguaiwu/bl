@@ -126,8 +126,8 @@ func (s *WoerterNetSource) Parse(word string, html string) (*TranslationData, er
 				{"der", "masculine"},
 				{"die", "feminine"},
 			} {
-			if strings.Contains(aLower, fmt.Sprintf("article is \"%s\"", candidate.article)) ||
-				strings.Contains(aLower, fmt.Sprintf("\"%s\" is %s", strings.ToLower(word), candidate.gender)) {
+				if strings.Contains(aLower, fmt.Sprintf("article is \"%s\"", candidate.article)) ||
+					strings.Contains(aLower, fmt.Sprintf("\"%s\" is %s", strings.ToLower(word), candidate.gender)) {
 					entry.Article = candidate.article
 					entry.Gender = candidate.gender
 					break
@@ -352,5 +352,3 @@ func splitEnglishTranslations(text string) []string {
 	}
 	return result
 }
-
-
