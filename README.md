@@ -1,6 +1,10 @@
 # bl — Terminal Dictionary Client
 
+**English** | [中文](README.zh-CN.md)
+
 A terminal-based dictionary client written in Go. Supports **Youdao** (EN ⇄ ZH) and **WoerterNet** (German) dictionary lookups with SQLite caching, offline dictionaries, and persistent configuration. Multi-platform bot support (Telegram, DingTalk).
+
+> This project was inspired by [rdict](https://github.com/Guanran928/rdict) — a Rust-based terminal dictionary client. Thanks to the original author for the inspiration.
 
 ## Quick Start
 
