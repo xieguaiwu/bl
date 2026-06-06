@@ -6,6 +6,14 @@
 
 > 本项目受 [rdict](https://github.com/Guanran928/rdict) 启发而开发，感谢原作者的创意。
 
+## 通过 COPR 安装（Fedora）
+
+```bash
+sudo dnf install dnf-plugins-core
+sudo dnf copr enable xieguaiwu/bl
+sudo dnf install bl
+```
+
 ## 快速开始
 
 ```bash

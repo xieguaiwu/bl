@@ -6,6 +6,14 @@ A terminal-based dictionary client written in Go. Supports **Youdao** (EN ⇄ ZH
 
 > This project was inspired by [rdict](https://github.com/Guanran928/rdict) — a Rust-based terminal dictionary client. Thanks to the original author for the inspiration.
 
+## Install via COPR (Fedora)
+
+```bash
+sudo dnf install dnf-plugins-core
+sudo dnf copr enable xieguaiwu/bl
+sudo dnf install bl
+```
+
 ## Quick Start
 
 ```bash
