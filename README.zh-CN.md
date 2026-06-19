@@ -95,6 +95,18 @@ cp config.example.json ~/.config/bl/config.json
 
 `api_key` 支持 `env:VAR_NAME` 格式引用环境变量 (`OPENROUTER_API_KEY`, `OPENCODE_API_KEY`, `NVIDIA_API_KEY`)。
 
+### 指定源语言 (`--from-lang`)
+
+当单词在多种语言中都存在时（如 "Raisonnement" 同时是法语和德语单词，"Handy" 在德语中意为"手机"），需要明确指定源语言：
+
+```bash
+bl --llm --from-lang French Raisonnement     # 法语 → 推理
+bl --llm --from-lang German Raisonnement     # 德语 → 论证
+bl --llm --from-lang German --to-lang English Handy   # 德语 Handy → mobile phone
+```
+
+不指定时，模型会自动判断源语言。
+
 ### API 密钥设置
 
 在 shell 配置文件中添加：

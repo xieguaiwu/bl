@@ -96,6 +96,18 @@ cp config.example.json ~/.config/bl/config.json
 
 The config supports multiple providers. Set `api_key` to `env:VAR_NAME` to reference environment variables (`OPENROUTER_API_KEY`, `OPENCODE_API_KEY`, `NVIDIA_API_KEY`).
 
+### Source Language (`--from-lang`)
+
+For words shared between languages (e.g. "Raisonnement" in French vs German, "Handy" in German vs English), specify the source language explicitly:
+
+```bash
+bl --llm --from-lang French Raisonnement     # French "reasoning" → 推理
+bl --llm --from-lang German Raisonnement     # German "reasoning" → 论证
+bl --llm --from-lang German --to-lang English Handy   # German "Handy" → mobile phone
+```
+
+When `--from-lang` is omitted, the model auto-detects the source language.
+
 ### API Keys
 
 Set these in your shell profile (`~/.bashrc`, `~/.config/fish/config.fish`, etc.):

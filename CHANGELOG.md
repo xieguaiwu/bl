@@ -5,6 +5,22 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.3.0] - 2026-06-19
+
+### Added
+
+- `--from-lang` flag: specify source language explicitly for ambiguous shared words (e.g. French vs German "Raisonnement")
+- `source_lang` field in global config and `.blrc` local config
+
+### Changed
+
+- LLM prompt now includes source language when specified: "Translate from {source} to {target}"
+- Cache key includes source language for proper isolation
+
+### Docs
+
+- README (EN + ZH): added `--from-lang` usage section with examples
+
 ## [v1.2.0] - 2026-06-19
 
 ### Added
@@ -69,6 +85,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.3.0]: https://github.com/xieguaiwu/bl/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/xieguaiwu/bl/compare/v1.1.0...v1.2.0
 [v1.1.0]: https://github.com/xieguaiwu/bl/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/xieguaiwu/bl/releases/tag/v1.0.0
