@@ -19,41 +19,47 @@ import (
 type LLMSource struct {
 	name       string
 	provider   config.LLMProvider
+	sourceLang string
 	targetLang string
 	sysPrompt  string
 	client     *http.Client
 }
 
 // NewLLMSource creates a new LLM-based dictionary source.
-// The name is used as the DictionarySource identifier.
-// provider defines the API endpoint, model, and authentication.
-// targetLang is the desired output language (e.g. "中文", "English", "日本語").
-// sysPrompt overrides the default system prompt if non-empty.
-func NewLLMSource(name string, provider config.LLMProvider, targetLang string, sysPrompt string) *LLMSource {
+func NewLLMSource(name string, provider config.LLMProvider, targetLang string, sourceLang string, sysPrompt string) *LLMSource {
 	if name == "" {
 		name = "llm"
 	}
-	prompt := sysPrompt
-	if prompt == "" {
-		prompt = fmt.Sprintf(defaultTranslationPrompt, targetLang)
-	} else if strings.Contains(prompt, "%s") {
-		prompt = fmt.Sprintf(prompt, targetLang)
-	} else {
-		// Custom prompt without %s: ensure target language instruction is at the start.
-		prompt = fmt.Sprintf("Translate the given text to %s.\n\n%s", targetLang, prompt)
-	}
+	prompt := buildPrompt(targetLang, sourceLang, sysPrompt)
 	return &LLMSource{
 		name:       name,
 		provider:   provider,
+		sourceLang: sourceLang,
 		targetLang: targetLang,
 		sysPrompt:  prompt,
 		client:     &http.Client{Timeout: 60 * time.Second},
 	}
 }
 
+// buildPrompt constructs the system prompt with optional source language.
+func buildPrompt(targetLang, sourceLang, customPrompt string) string {
+	direction := fmt.Sprintf("to %s", targetLang)
+	if sourceLang != "" {
+		direction = fmt.Sprintf("from %s to %s", sourceLang, targetLang)
+	}
+	if customPrompt == "" {
+		// Use default prompt template with direction.
+		return fmt.Sprintf(defaultTranslationPrompt, direction)
+	}
+	if strings.Contains(customPrompt, "%s") {
+		return fmt.Sprintf(customPrompt, direction)
+	}
+	return fmt.Sprintf("Translate the given text %s.\n\n%s", direction, customPrompt)
+}
+
 // defaultTranslationPrompt is the default system prompt used for translation.
-// %s is replaced with the target language.
-const defaultTranslationPrompt = `You are a professional translator and linguist. Translate the given text to %s.
+// %s is replaced with direction like "to 中文" or "from French to English".
+const defaultTranslationPrompt = `You are a professional translator and linguist. Translate the given text %s.
 
 RULES:
 1. Return ONLY a JSON object — no markdown, no code fences, no extra text.
@@ -71,14 +77,20 @@ RULES:
   ]
 }
 3. If the word has multiple meanings, include up to 3 in the translations array.
-4. Provide exactly 5 example sentences in vivid, concrete scenes with clear actions and imagery. Each must depict a specific situation the reader can visualize.
+4. Provide exactly 5 example sentences. Each must depict a vivid, concrete scene with clear actions and imagery — the reader should be able to visualize the moment. Avoid generic statements or abstract descriptions.
 5. For nouns in inflected languages (German, French, etc.), always provide gender and plural if applicable.
 6. For adjectives, provide comparative and superlative forms if applicable.
-7. Set any field that is not relevant or unknown to empty string (or empty array for examples).`
+7. Example language rules:
+   - English source text: examples should be English-only in the "en" field; set "zh" to empty string.
+   - German source text: each example must include both German (in "en") and Chinese translation (in "zh").
+   - Other languages: include both original and translation.
+8. Set any field that is not relevant or unknown to empty string (or empty array for examples).`
 
-// Name returns a composite source identifier that includes provider and target language
-// to avoid cache key collisions when switching providers or target languages.
+// Name returns a composite source identifier for cache key isolation.
 func (s *LLMSource) Name() string {
+	if s.sourceLang != "" {
+		return fmt.Sprintf("llm:%s:%s:%s", s.provider.Name, s.sourceLang, s.targetLang)
+	}
 	return fmt.Sprintf("llm:%s:%s", s.provider.Name, s.targetLang)
 }
 

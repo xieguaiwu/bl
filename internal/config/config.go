@@ -44,6 +44,7 @@ type LLMConfig struct {
 	Provider     string       `json:"provider"`               // name of the active provider
 	Providers    []LLMProvider `json:"providers"`             // configured providers
 	TargetLang   string       `json:"target_lang"`            // target language, e.g. "中文", "English", "日本語"
+	SourceLang   string       `json:"source_lang,omitempty"`  // source language (empty = auto-detect), e.g. "French", "German"
 	SystemPrompt string       `json:"system_prompt,omitempty"` // optional custom system prompt
 }
 

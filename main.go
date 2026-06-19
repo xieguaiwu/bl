@@ -39,6 +39,7 @@ type runConfig struct {
 	llmModel     string
 	llmKey       string
 	targetLang   string
+	sourceLang   string
 }
 
 func parseFlags() runConfig {
@@ -63,7 +64,8 @@ func parseFlags() runConfig {
 	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
 	flag.StringVar(&cfg.llmModel, "llm-model", "", "LLM model ID (overrides provider default)")
 	flag.StringVar(&cfg.llmKey, "llm-key", "", "API key for LLM provider (overrides config/env)")
-	flag.StringVar(&cfg.targetLang, "to-lang", "", "target language for LLM translation")
+	flag.StringVar(&cfg.targetLang, "to-lang", "", "target language (e.g. 中文, English, 日本語)")
+	flag.StringVar(&cfg.sourceLang, "from-lang", "", "source language (auto-detect if empty; specify for ambiguous words)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: bl [flags] <text>\n\nFlags:\n")
 		flag.PrintDefaults()
@@ -78,6 +80,8 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-model google/gemma-4-31b-it:free hello   Specific model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 hello                Translate to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang English Haus                 German → English\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang French Raisonnement         Specify source lang for ambiguous words\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang German --to-lang English Handy     German 'Handy' = mobile phone\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-key \"$API_KEY\" hello            Inline API key\n")
 		fmt.Fprintf(os.Stderr, "\nLocal config (.blrc in current dir, overrides global config):\n")
 		fmt.Fprintf(os.Stderr, "  echo '{\"provider\":\"openrouter\"}' > .blrc\n")
@@ -98,6 +102,8 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 konnichiwa   LLM to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang English Haus           German noun → English\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-model google/gemma-4-31b-it:free hello   Pick model\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang French Raisonnement          French 'reasoning'\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang German Handy                German 'mobile phone'\n")
 	}
 	flag.Parse()
 
@@ -234,7 +240,13 @@ func main() {
 			targetLang = cfg.LLM.TargetLang
 		}
 
-		source = dict.NewLLMSource("llm", *provider, targetLang, cfg.LLM.SystemPrompt)
+		// Resolve source language: CLI flag > .blrc > auto-detect
+		sourceLang := rc.sourceLang
+		if sourceLang == "" {
+			sourceLang = cfg.LLM.SourceLang
+		}
+
+		source = dict.NewLLMSource("llm", *provider, targetLang, sourceLang, cfg.LLM.SystemPrompt)
 	} else {
 		source = dict.NewSourceByName(rc.source)
 		if source == nil {
@@ -330,11 +342,12 @@ func findProvider(providers []config.LLMProvider, name string) *config.LLMProvid
 // LocalRC is a project-local .blrc config that overrides LLM settings.
 // Place a .blrc file in the current directory to quickly switch provider/model.
 type LocalRC struct {
-	Provider   string `json:"provider,omitempty"`   // references a named provider in global config
-	Model      string `json:"model,omitempty"`      // model ID override
-	TargetLang string `json:"target_lang,omitempty"` // target language override
-	BaseURL    string `json:"base_url,omitempty"`    // ad-hoc base URL (if not using a named provider)
-	APIKey     string `json:"api_key,omitempty"`     // ad-hoc API key or "env:VAR"
+	Provider   string `json:"provider,omitempty"`    // references a named provider in global config
+	Model      string `json:"model,omitempty"`       // model ID override
+	TargetLang string `json:"target_lang,omitempty"`  // target language override
+	SourceLang string `json:"source_lang,omitempty"`  // source language override
+	BaseURL    string `json:"base_url,omitempty"`     // ad-hoc base URL (if not using a named provider)
+	APIKey     string `json:"api_key,omitempty"`      // ad-hoc API key or "env:VAR"
 }
 
 // applyTo applies the local RC overrides to the given config.
@@ -344,6 +357,9 @@ func (lrc *LocalRC) applyTo(cfg *config.Config) {
 	}
 	if lrc.TargetLang != "" {
 		cfg.LLM.TargetLang = lrc.TargetLang
+	}
+	if lrc.SourceLang != "" {
+		cfg.LLM.SourceLang = lrc.SourceLang
 	}
 	if lrc.Model != "" || lrc.BaseURL != "" || lrc.APIKey != "" {
 		// If a named provider is referenced and model is specified, update that provider's model.
@@ -485,6 +501,9 @@ func dictStatusCmd(cfg *config.Config) {
 	fmt.Printf("LLM translation: %v\n", cfg.LLM.Enabled)
 	fmt.Printf("LLM provider: %s\n", cfg.LLM.Provider)
 	fmt.Printf("LLM target lang: %s\n", cfg.LLM.TargetLang)
+	if cfg.LLM.SourceLang != "" {
+		fmt.Printf("LLM source lang: %s\n", cfg.LLM.SourceLang)
+	}
 	fmt.Printf("Config file: %s\n", path)
 	fmt.Printf("Env override: BL_MODE=%s\n", os.Getenv("BL_MODE"))
 
@@ -499,6 +518,9 @@ func dictStatusCmd(cfg *config.Config) {
 		}
 		if lrc.TargetLang != "" {
 			fmt.Printf("  target_lang: %s\n", lrc.TargetLang)
+		}
+		if lrc.SourceLang != "" {
+			fmt.Printf("  source_lang: %s\n", lrc.SourceLang)
 		}
 		if lrc.BaseURL != "" {
 			fmt.Printf("  base_url: %s\n", lrc.BaseURL)
