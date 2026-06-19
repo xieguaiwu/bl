@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.5.0] - 2026-06-19
+
+### Fixed
+
+- Increased max_tokens from 1024 to 4096 for reasoning models (DeepSeek V4 Flash, etc.) — reasoning traces were consuming the token budget, leaving empty responses
+- Stop tracking pre-built binary files bl-dingtalk and bl-telegram in git
+
+## [v1.4.0] - 2026-06-19
+
+### Changed
+
+- Default model switched to `qwen/qwen3-next-80b-a3b-instruct:free` — MoE 80B/3B active, fastest inference, no thinking traces, excellent multilingual support
+- Updated config.example.json and README to reflect the new default
+
 ## [v1.3.0] - 2026-06-19
 
 ### Added
@@ -85,6 +99,8 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.5.0]: https://github.com/xieguaiwu/bl/compare/v1.4.0...v1.5.0
+[v1.4.0]: https://github.com/xieguaiwu/bl/compare/v1.3.0...v1.4.0
 [v1.3.0]: https://github.com/xieguaiwu/bl/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/xieguaiwu/bl/compare/v1.1.0...v1.2.0
 [v1.1.0]: https://github.com/xieguaiwu/bl/compare/v1.0.0...v1.1.0
