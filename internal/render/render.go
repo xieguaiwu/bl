@@ -217,14 +217,6 @@ func RenderTranslationResult(result *dict.Translation, colored bool) string {
 		}
 	}
 
-	if result.Pronunciation != "" {
-		if colored {
-			fmt.Fprintf(&b, "%s# Pronunciation%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiGreen, result.Pronunciation, ansiReset)
-		} else {
-			fmt.Fprintf(&b, "# Pronunciation  %s\n", result.Pronunciation)
-		}
-	}
-
 	if len(result.Examples) > 0 {
 		// Convert generic examples (Example has En/Zh fields) for display
 		fmt.Fprintln(&b, "# Examples")

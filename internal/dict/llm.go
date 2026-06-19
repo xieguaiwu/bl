@@ -169,14 +169,37 @@ func (s *LLMSource) Translate(word string) (*TranslationData, error) {
 	return s.parseTranslation(content, word)
 }
 
+// stripCodeFences removes markdown code fences (```json ... ``` or ``` ... ```)
+// and inline code (`...`) from the content before JSON parsing.
+func stripCodeFences(s string) string {
+	s = strings.TrimSpace(s)
+	// Remove ```json ... ``` or ``` ... ```
+	if strings.HasPrefix(s, "```") {
+		if idx := strings.Index(s, "\n"); idx >= 0 {
+			s = s[idx+1:]
+		}
+		if strings.HasSuffix(s, "```") {
+			s = s[:len(s)-3]
+		}
+		s = strings.TrimSpace(s)
+	}
+	// Remove inline `code` wrapping if the whole string is wrapped
+	if strings.HasPrefix(s, "`") && strings.HasSuffix(s, "`") {
+		s = s[1 : len(s)-1]
+		s = strings.TrimSpace(s)
+	}
+	return s
+}
+
 // parseTranslation extracts TranslationData from the LLM's JSON response.
-// It tries to parse the content as JSON directly; if that fails, it attempts
-// to extract a JSON object from the text and falls back to wrapping plain text.
 func (s *LLMSource) parseTranslation(content string, word string) (*TranslationData, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
 		return nil, fmt.Errorf("LLM returned empty response for %q", word)
 	}
+
+	// Strip markdown code fences before JSON parsing.
+	content = stripCodeFences(content)
 
 	// Try direct JSON parse first.
 	var t Translation
