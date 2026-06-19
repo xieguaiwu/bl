@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.2.0] - 2026-06-19
+
+### Added
+
+- **Rich grammatical info in LLM output**: Gender, Plural, Comparative, Superlative fields for inflected languages
+- **`config.example.json` template** — all API keys removed, safe for sharing
+- **LLM translation section in README** (EN + ZH) with provider table and configuration guide
+
+### Changed
+
+- **System prompt redesigned**: now requests gender / plural / comparative / superlative for inflected languages
+- **Custom system prompts** now correctly interpolate target language (via `%s` or auto-prepend)
+- **Default model** switched to `google/gemma-4-31b-it:free` (27+ free models available on OpenRouter)
+
+### Fixed
+
+- **`--to-lang` flag** now correctly overrides target language even when custom system prompts are active
+
 ## [v1.1.0] - 2026-06-19
 
 ### Added
@@ -51,5 +69,6 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.2.0]: https://github.com/xieguaiwu/bl/compare/v1.1.0...v1.2.0
 [v1.1.0]: https://github.com/xieguaiwu/bl/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/xieguaiwu/bl/releases/tag/v1.0.0
