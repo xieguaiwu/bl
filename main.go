@@ -77,6 +77,9 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider nemotron hello   Use NVIDIA Nemotron\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 hello      Translate to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-key $API_KEY hello       Inline API key\n")
+		fmt.Fprintf(os.Stderr, "\n  .blrc (local config):\n")
+		fmt.Fprintf(os.Stderr, "  echo '{\"provider\":\"openrouter\",\"model\":\"...\"}' > .blrc\n")
+		fmt.Fprintf(os.Stderr, "  echo '{\"base_url\":\"...\",\"model\":\"...\",\"api_key\":\"env:X\"}' > .blrc\n")
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "  bl hello                    Youdao EN<->ZH (default)\n")
 		fmt.Fprintf(os.Stderr, "  bl -g Haus                  German dictionary\n")
@@ -163,6 +166,11 @@ func main() {
 	if rc.dictStatus {
 		dictStatusCmd(cfg)
 		return
+	}
+
+	// Load local .blrc if present (project-specific LLM overrides)
+	if lrc, err := loadLocalRC(); err == nil && lrc != nil {
+		lrc.applyTo(cfg)
 	}
 
 	// Determine effective mode: CLI flag > env var > config file > default.
@@ -314,6 +322,84 @@ func findProvider(providers []config.LLMProvider, name string) *config.LLMProvid
 	return nil
 }
 
+// LocalRC is a project-local .blrc config that overrides LLM settings.
+// Place a .blrc file in the current directory to quickly switch provider/model.
+type LocalRC struct {
+	Provider   string `json:"provider,omitempty"`   // references a named provider in global config
+	Model      string `json:"model,omitempty"`      // model ID override
+	TargetLang string `json:"target_lang,omitempty"` // target language override
+	BaseURL    string `json:"base_url,omitempty"`    // ad-hoc base URL (if not using a named provider)
+	APIKey     string `json:"api_key,omitempty"`     // ad-hoc API key or "env:VAR"
+}
+
+// applyTo applies the local RC overrides to the given config.
+func (lrc *LocalRC) applyTo(cfg *config.Config) {
+	if lrc.Provider != "" {
+		cfg.LLM.Provider = lrc.Provider
+	}
+	if lrc.TargetLang != "" {
+		cfg.LLM.TargetLang = lrc.TargetLang
+	}
+	if lrc.Model != "" || lrc.BaseURL != "" || lrc.APIKey != "" {
+		// If a named provider is referenced and model is specified, update that provider's model.
+		provider := findProvider(cfg.LLM.Providers, lrc.Provider)
+		if provider != nil {
+			if lrc.Model != "" {
+				provider.Model = lrc.Model
+			}
+			if lrc.BaseURL != "" {
+				provider.BaseURL = lrc.BaseURL
+			}
+			if lrc.APIKey != "" {
+				provider.APIKey = lrc.APIKey
+			}
+		} else if lrc.BaseURL != "" || lrc.Model != "" {
+			// If no matching named provider but we have enough info, create an ad-hoc provider.
+			name := lrc.Provider
+			if name == "" {
+				name = "rc"
+			}
+			adHoc := config.LLMProvider{
+				Name:    name,
+				BaseURL: lrc.BaseURL,
+				Model:   lrc.Model,
+				APIKey:  lrc.APIKey,
+			}
+			if adHoc.BaseURL == "" {
+				adHoc.BaseURL = "https://openrouter.ai/api/v1"
+			}
+			if adHoc.Model == "" {
+				adHoc.Model = "google/gemma-4-31b-it:free"
+			}
+			cfg.LLM.Provider = name
+			cfg.LLM.Providers = append(cfg.LLM.Providers, adHoc)
+		}
+	}
+	cfg.LLM.Enabled = true
+}
+
+// loadLocalRC looks for a .blrc file in the current directory.
+// Returns nil without error if no .blrc is found.
+func loadLocalRC() (*LocalRC, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(cwd, ".blrc")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read .blrc: %w", err)
+	}
+	var rc LocalRC
+	if err := json.Unmarshal(data, &rc); err != nil {
+		return nil, fmt.Errorf("parse .blrc: %w", err)
+	}
+	return &rc, nil
+}
+
 func updateDictCmd() {
 	baseURL := os.Getenv("BL_DICT_URL")
 	if baseURL == "" {
@@ -396,6 +482,25 @@ func dictStatusCmd(cfg *config.Config) {
 	fmt.Printf("LLM target lang: %s\n", cfg.LLM.TargetLang)
 	fmt.Printf("Config file: %s\n", path)
 	fmt.Printf("Env override: BL_MODE=%s\n", os.Getenv("BL_MODE"))
+
+	// Show .blrc status
+	if lrc, err := loadLocalRC(); err == nil && lrc != nil {
+		fmt.Printf("\n.blrc active (local override):\n")
+		if lrc.Provider != "" {
+			fmt.Printf("  provider: %s\n", lrc.Provider)
+		}
+		if lrc.Model != "" {
+			fmt.Printf("  model: %s\n", lrc.Model)
+		}
+		if lrc.TargetLang != "" {
+			fmt.Printf("  target_lang: %s\n", lrc.TargetLang)
+		}
+		if lrc.BaseURL != "" {
+			fmt.Printf("  base_url: %s\n", lrc.BaseURL)
+		}
+	} else {
+		fmt.Printf("\n.blrc: not found (place in current dir for project-specific LLM config)\n")
+	}
 }
 
 func downloadFile(dest, url string) error {
