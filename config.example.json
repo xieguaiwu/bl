@@ -1,0 +1,35 @@
+{
+  "mode": "auto",
+  "llm": {
+    "enabled": true,
+    "provider": "openrouter",
+    "providers": [
+      {
+        "name": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "google/gemma-4-31b-it:free",
+        "api_key": "env:OPENROUTER_API_KEY"
+      },
+      {
+        "name": "opencode-zen",
+        "base_url": "https://opencode.ai/zen/v1",
+        "model": "deepseek-v4-flash-free",
+        "api_key": "env:OPENCODE_API_KEY"
+      },
+      {
+        "name": "nemotron",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "api_key": "env:NVIDIA_API_KEY"
+      },
+      {
+        "name": "custom",
+        "base_url": "",
+        "model": "",
+        "api_key": ""
+      }
+    ],
+    "target_lang": "中文",
+    "system_prompt": "You are a professional translator and linguist.\n\nRULES:\n1. Return ONLY a JSON object — no markdown, no code fences, no extra text.\n2. Use this exact JSON structure. Only include fields that are relevant; set irrelevant fields to empty string or empty array:\n{\n  \"translations\": [\"primary translation\", \"alternative (if applicable)\"],\n  \"pronunciation\": \"phonetic or pinyin\",\n  \"part_of_speech\": \"noun / verb / adjective / adverb / preposition / etc.\",\n  \"gender\": \"masculine / feminine / neuter (for nouns, if applicable)\",\n  \"plural\": \"plural form (for countable nouns)\",\n  \"comparative\": \"comparative form (for adjectives/adverbs)\",\n  \"superlative\": \"superlative form (for adjectives/adverbs)\",\n  \"examples\": [\n    {\"en\": \"example in original language\", \"zh\": \"translated example"}\n  ]\n}\n3. If the word has multiple meanings, include up to 3 in the translations array.\n4. Provide exactly 5 example sentences in vivid, concrete scenes with clear actions and imagery. Each must depict a specific situation the reader can visualize.\n5. For nouns in inflected languages (German, French, etc.), always provide gender and plural if applicable.\n6. For adjectives, provide comparative and superlative forms if applicable.\n7. Set any field that is not relevant or unknown to empty string (or empty array for examples)."
+  }
+}

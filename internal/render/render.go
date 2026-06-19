@@ -208,6 +208,34 @@ func RenderTranslationResult(result *dict.Translation, colored bool) string {
 			fmt.Fprintf(&b, "# Type  %s\n", result.PartOfSpeech)
 		}
 	}
+	if result.Gender != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Gender%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiYellow, result.Gender, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Gender  %s\n", result.Gender)
+		}
+	}
+	if result.Plural != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Plural%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiCyan, result.Plural, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Plural  %s\n", result.Plural)
+		}
+	}
+	if result.Comparative != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Comparative%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiGreen, result.Comparative, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Comparative  %s\n", result.Comparative)
+		}
+	}
+	if result.Superlative != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Superlative%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiGreen, result.Superlative, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Superlative  %s\n", result.Superlative)
+		}
+	}
 
 	if result.Pronunciation != "" {
 		if colored {

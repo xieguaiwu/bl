@@ -30,6 +30,80 @@ go build -o bl . && ./bl hello
 - **ANSI 颜色**：自动检测终端支持，尊重 `NO_COLOR` 环境变量
 - **交互模式**：REPL 提示符 `[bl]#`
 - **机器人平台**：Telegram 机器人 + 钉钉 Webhook
+- **LLM 翻译**：通过大语言模型实现任意语言之间的 AI 翻译，无需爬取网页
+
+## LLM 翻译 (`--llm`)
+
+使用大语言模型在任意语言之间翻译，支持词性、性数格、比较级等语法信息，并提供 5 个有画面感的例句。
+
+```bash
+# 默认 LLM 翻译（由 ~/.config/bl/config.json 决定）
+bl --llm hello
+
+# 指定目标语言
+bl --llm --to-lang "日本語" "good morning"
+bl --llm --to-lang "Français" "hello"
+
+# 切换 Provider / 模型
+bl --llm --llm-provider openrouter --llm-model "google/gemma-4-31b-it:free" hello
+bl --llm --llm-model nemotron-3-ultra-free hello
+
+# 临时指定 API key
+bl --llm --llm-key "$OPENROUTER_API_KEY" hello
+```
+
+### Provider 预设
+
+| Provider | 接口地址 | 默认模型 | 免费额度 |
+|----------|----------|----------|----------|
+| `openrouter` | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 27+ 免费模型
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `deepseek-v4-flash-free` | 5 个免费模型
+| `nemotron` | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-ultra-550b-a55b` | 需 NVIDIA API key
+| `custom` | 用户自定义 | 用户自定义 | 任意 OpenAI 兼容接口
+
+### 丰富的语法信息
+
+LLM 翻译结果包含以下语法信息（根据语言自动适配）：
+
+- **词性**：名词/动词/形容词/副词等
+- **性属**：阳性/阴性/中性（屈折语名词）
+- **复数形式**：可数名词的复数
+- **比较级 / 最高级**：形容词/副词
+- **发音**：音标或拼音
+- **5 个生动例句**：有画面感、有动作、有意象的具体场景
+
+### 本地配置 (`.blrc`)
+
+在项目目录创建 `.blrc` 文件，快速切换 Provider 和模型，无需每次传 CLI 参数：
+
+```bash
+# 引用全局配置中的 named provider
+echo '{"provider":"openrouter","model":"google/gemma-4-31b-it:free","target_lang":"Français"}' > .blrc
+
+# 完全独立定义 provider（不依赖全局配置）
+echo '{"base_url":"https://openrouter.ai/api/v1","model":"google/gemma-4-31b-it:free","api_key":"env:OPENROUTER_API_KEY","target_lang":"日本語"}' > .blrc
+```
+
+优先级：`CLI 参数` > `.blrc` > `全局配置`
+
+### 配置示例
+
+```bash
+cp config.example.json ~/.config/bl/config.json
+# 编辑 ~/.config/bl/config.json 填入你的 API key
+```
+
+`api_key` 支持 `env:VAR_NAME` 格式引用环境变量 (`OPENROUTER_API_KEY`, `OPENCODE_API_KEY`, `NVIDIA_API_KEY`)。
+
+### API 密钥设置
+
+在 shell 配置文件中添加：
+
+```bash
+export OPENROUTER_API_KEY="sk-or-v1-your-key"
+export OPENCODE_API_KEY="sk-your-key"
+export NVIDIA_API_KEY="nvapi-your-key"
+```
 
 ## 使用方法
 

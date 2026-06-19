@@ -36,6 +36,11 @@ func NewLLMSource(name string, provider config.LLMProvider, targetLang string, s
 	prompt := sysPrompt
 	if prompt == "" {
 		prompt = fmt.Sprintf(defaultTranslationPrompt, targetLang)
+	} else if strings.Contains(prompt, "%s") {
+		prompt = fmt.Sprintf(prompt, targetLang)
+	} else {
+		// Custom prompt without %s: ensure target language instruction is at the start.
+		prompt = fmt.Sprintf("Translate the given text to %s.\n\n%s", targetLang, prompt)
 	}
 	return &LLMSource{
 		name:       name,
@@ -48,24 +53,28 @@ func NewLLMSource(name string, provider config.LLMProvider, targetLang string, s
 
 // defaultTranslationPrompt is the default system prompt used for translation.
 // %s is replaced with the target language.
-const defaultTranslationPrompt = `You are a professional translator. Translate the given text to %s.
+const defaultTranslationPrompt = `You are a professional translator and linguist. Translate the given text to %s.
 
 RULES:
 1. Return ONLY a JSON object — no markdown, no code fences, no extra text.
-2. Use this exact JSON structure:
+2. Use this exact JSON structure. Only include fields that are relevant; set irrelevant fields to empty string or empty array:
 {
-  "translations": ["primary translation", "alternative translation (if applicable)"],
-  "pronunciation": "phonetic or pinyin if applicable, otherwise empty string",
-  "part_of_speech": "word type if applicable (e.g. noun, verb, adjective), otherwise empty string",
+  "translations": ["primary translation", "alternative (if applicable)"],
+  "pronunciation": "phonetic or pinyin",
+  "part_of_speech": "noun / verb / adjective / adverb / preposition / etc.",
+  "gender": "masculine / feminine / neuter (for nouns, if applicable)",
+  "plural": "plural form (for countable nouns)",
+  "comparative": "comparative form (for adjectives/adverbs)",
+  "superlative": "superlative form (for adjectives/adverbs)",
   "examples": [
-    {"en": "example sentence in the original language", "zh": "translated example sentence"}
+    {"en": "example in original language", "zh": "translated example"}
   ]
 }
 3. If the word has multiple meanings, include up to 3 in the translations array.
-4. Include 1-2 realistic example sentences showing usage.
-5. If pronunciation is not relevant, set it to empty string.
-6. If part_of_speech is not relevant or unknown, set it to empty string.
-7. If there are no good examples, leave the examples array empty.`
+4. Provide exactly 5 example sentences in vivid, concrete scenes with clear actions and imagery. Each must depict a specific situation the reader can visualize.
+5. For nouns in inflected languages (German, French, etc.), always provide gender and plural if applicable.
+6. For adjectives, provide comparative and superlative forms if applicable.
+7. Set any field that is not relevant or unknown to empty string (or empty array for examples).`
 
 // Name returns a composite source identifier that includes provider and target language
 // to avoid cache key collisions when switching providers or target languages.

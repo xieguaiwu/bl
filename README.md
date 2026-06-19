@@ -30,6 +30,81 @@ go build -o bl . && ./bl hello
 - **ANSI color**: Auto-detected, respects `NO_COLOR`
 - **Interactive mode**: REPL prompt with `[bl]#`
 - **Bot platforms**: Telegram bot + DingTalk webhook
+- **LLM translation**: AI-powered translation between any languages via OpenAI-compatible APIs
+
+## LLM Translation (`--llm`)
+
+Translate any text between any languages using large language models — no more web scraping, works for any language pair.
+
+```bash
+# Default LLM translation (configured in ~/.config/bl/config.json)
+bl --llm hello
+
+# Specify target language
+bl --llm --to-lang "日本語" "good morning"
+bl --llm --to-lang "Français" "hello"
+
+# Choose a different provider/model
+bl --llm --llm-provider openrouter --llm-model "google/gemma-4-31b-it:free" hello
+bl --llm --llm-model nemotron-3-ultra-free hello
+
+# Inline API key (overrides config)
+bl --llm --llm-key "$OPENROUTER_API_KEY" hello
+```
+
+### Provider Presets
+
+| Provider | Endpoint | Default Model | Free Tier |
+|----------|----------|---------------|-----------|
+| `openrouter` | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 27+ free models
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `deepseek-v4-flash-free` | 5 free models
+| `nemotron` | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-ultra-550b-a55b` | Requires NVIDIA API key
+| `custom` | (user-defined) | (user-defined) | Any OpenAI-compatible endpoint
+
+### Rich Linguistic Info
+
+The LLM response includes grammatical details when relevant:
+- **Part of speech**: noun/verb/adjective/etc.
+- **Gender**: masculine/feminine/neuter (for inflected languages)
+- **Plural form**: for countable nouns
+- **Comparative / Superlative**: for adjectives/adverbs
+- **Pronunciation**: phonetic or pinyin
+- **5 vivid example sentences**: concrete scenes with actions and imagery
+
+### Local Config (`.blrc`)
+
+Create a `.blrc` file in your project directory for quick provider/model switching without CLI flags:
+
+```bash
+# Reference a named provider from global config
+echo '{"provider":"openrouter","model":"google/gemma-4-31b-it:free","target_lang":"Français"}' > .blrc
+
+# Ad-hoc provider (no global config needed)
+echo '{"base_url":"https://openrouter.ai/api/v1","model":"google/gemma-4-31b-it:free","api_key":"env:OPENROUTER_API_KEY","target_lang":"日本語"}' > .blrc
+```
+
+Priority: `CLI flags` > `.blrc` > `global config`
+
+### Configuration Example
+
+Copy and customize:
+
+```bash
+cp config.example.json ~/.config/bl/config.json
+# Then edit ~/.config/bl/config.json to set your API keys
+```
+
+The config supports multiple providers. Set `api_key` to `env:VAR_NAME` to reference environment variables (`OPENROUTER_API_KEY`, `OPENCODE_API_KEY`, `NVIDIA_API_KEY`).
+
+### API Keys
+
+Set these in your shell profile (`~/.bashrc`, `~/.config/fish/config.fish`, etc.):
+
+```bash
+export OPENROUTER_API_KEY="sk-or-v1-your-key"
+export OPENCODE_API_KEY="sk-your-key"
+export NVIDIA_API_KEY="nvapi-your-key"
+```
 
 ## Usage
 

@@ -78,6 +78,10 @@ type Translation struct {
 	Translations  []string  `json:"translations"`
 	Pronunciation string    `json:"pronunciation,omitempty"`
 	PartOfSpeech  string    `json:"part_of_speech,omitempty"`
+	Gender        string    `json:"gender,omitempty"`
+	Plural        string    `json:"plural,omitempty"`
+	Comparative   string    `json:"comparative,omitempty"`
+	Superlative   string    `json:"superlative,omitempty"`
 	Examples      []Example `json:"examples,omitempty"`
 }
 
