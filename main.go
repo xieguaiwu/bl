@@ -17,7 +17,7 @@ import (
 	"bl/internal/render"
 )
 
-var userAgent = "bl/" + "0.1.0"
+var userAgent = "bl/" + "0.2.0"
 
 type runConfig struct {
 	text       string
@@ -32,6 +32,13 @@ type runConfig struct {
 	dictStatus bool
 	genConfig  bool
 	modeFlag   string // "auto", "offline", "online" — sets config and exits
+
+	// LLM translation flags
+	llm          bool
+	llmProvider  string
+	llmModel     string
+	llmKey       string
+	targetLang   string
 }
 
 func parseFlags() runConfig {
@@ -51,6 +58,12 @@ func parseFlags() runConfig {
 	flag.BoolVar(&cfg.dictStatus, "dict-status", false, "show offline dictionary status")
 	flag.BoolVar(&cfg.genConfig, "generate-config", false, "generate default config file")
 	flag.StringVar(&cfg.modeFlag, "mode", "", "set default mode (auto/offline/online) and save to config")
+	// LLM flags
+	flag.BoolVar(&cfg.llm, "llm", false, "use LLM-based translation (requires API key in config or env)")
+	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
+	flag.StringVar(&cfg.llmModel, "llm-model", "", "LLM model ID (overrides provider default)")
+	flag.StringVar(&cfg.llmKey, "llm-key", "", "API key for LLM provider (overrides config/env)")
+	flag.StringVar(&cfg.targetLang, "to-lang", "", "target language for LLM translation")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: bl [flags] <text>\n\nFlags:\n")
 		flag.PrintDefaults()
@@ -59,6 +72,11 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  Use --mode offline  to permanently switch to offline mode\n")
 		fmt.Fprintf(os.Stderr, "  Use --mode online   to permanently switch to online mode\n")
 		fmt.Fprintf(os.Stderr, "  Use --mode auto     to restore default (try offline, then online)\n")
+		fmt.Fprintf(os.Stderr, "\nLLM Translation:\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm hello                    LLM translation with default provider\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider nemotron hello   Use NVIDIA Nemotron\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 hello      Translate to Japanese\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --llm-key $API_KEY hello       Inline API key\n")
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "  bl hello                    Youdao EN<->ZH (default)\n")
 		fmt.Fprintf(os.Stderr, "  bl -g Haus                  German dictionary\n")
@@ -70,6 +88,8 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --mode offline           set offline as default\n")
 		fmt.Fprintf(os.Stderr, "  bl --update-dict            download offline dictionaries\n")
 		fmt.Fprintf(os.Stderr, "  bl --dict-status            show offline dictionary status\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm hello              LLM translation\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 konnichiwa\n")
 	}
 	flag.Parse()
 
@@ -111,6 +131,8 @@ func main() {
 		if created {
 			path, _ := config.ConfigPath()
 			fmt.Printf("Created default config at %s\n", path)
+		} else {
+			fmt.Println("Config file already exists, not overwriting.")
 		}
 		return
 	}
@@ -139,14 +161,11 @@ func main() {
 
 	// --dict-status: show offline dictionary info
 	if rc.dictStatus {
-		dictStatusCmd()
+		dictStatusCmd(cfg)
 		return
 	}
 
 	// Determine effective mode: CLI flag > env var > config file > default.
-	// "auto" tries offline first, falls back to online.
-	// "offline" uses only offline dictionary.
-	// "online" skips offline dictionary entirely.
 	mode := config.ModeAuto
 	switch {
 	case rc.offline:
@@ -162,35 +181,80 @@ func main() {
 		}
 	}
 
-	source := dict.NewSourceByName(rc.source)
-	if source == nil {
-		fmt.Fprintf(os.Stderr, "unknown source: %s (use youdao or woerter-net)\n", rc.source)
-		os.Exit(1)
+	// Determine source: LLM or traditional
+	useLLM := rc.llm || cfg.LLM.Enabled
+
+	var source dict.DictionarySource
+
+	if useLLM {
+		// Resolve LLM provider
+		providerName := rc.llmProvider
+		if providerName == "" {
+			providerName = cfg.LLM.Provider
+		}
+		providers := cfg.LLM.Providers
+		provider := findProvider(providers, providerName)
+		if provider == nil {
+			fmt.Fprintf(os.Stderr, "error: LLM provider %q not found in config\n", providerName)
+			fmt.Fprintf(os.Stderr, "  Available providers: ")
+			for i, p := range providers {
+				if i > 0 {
+					fmt.Fprintf(os.Stderr, ", ")
+				}
+				fmt.Fprintf(os.Stderr, "%s", p.Name)
+			}
+			fmt.Fprintln(os.Stderr)
+			os.Exit(1)
+		}
+
+		// Apply CLI overrides
+		if rc.llmModel != "" {
+			provider.Model = rc.llmModel
+		}
+		if rc.llmKey != "" {
+			provider.APIKey = rc.llmKey
+		}
+
+		// Resolve target language
+		targetLang := rc.targetLang
+		if targetLang == "" {
+			targetLang = cfg.LLM.TargetLang
+		}
+
+		source = dict.NewLLMSource("llm", *provider, targetLang, cfg.LLM.SystemPrompt)
+	} else {
+		source = dict.NewSourceByName(rc.source)
+		if source == nil {
+			fmt.Fprintf(os.Stderr, "unknown source: %s (use youdao or woerter-net)\n", rc.source)
+			os.Exit(1)
+		}
 	}
 
 	dbPath := cachePath(rc.noCache)
 
 	var offlineDict *dict.OfflineDictionary
 	onlyOffline := false
-	switch mode {
-	case config.ModeOffline:
-		onlyOffline = true
-		od, err := openOfflineDict(source.Name(), rc.text)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		offlineDict = od
-	case config.ModeAuto:
-		// Auto mode: try offline, fall back to online on miss.
-		od, err := openOfflineDict(source.Name(), rc.text)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: offline dict not available, falling back to online: %v\n", err)
-		} else {
+	// Offline mode only works with traditional sources, not LLM
+	if !useLLM {
+		switch mode {
+		case config.ModeOffline:
+			onlyOffline = true
+			od, err := openOfflineDict(source.Name(), rc.text)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
 			offlineDict = od
+		case config.ModeAuto:
+			od, err := openOfflineDict(source.Name(), rc.text)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "warning: offline dict not available, falling back to online: %v\n", err)
+			} else {
+				offlineDict = od
+			}
+		case config.ModeOnline:
+			// No offline dictionary.
 		}
-	case config.ModeOnline:
-		// No offline dictionary.
 	}
 
 	client, err := dict.NewRdictWithOffline(source, dbPath, offlineDict, onlyOffline)
@@ -240,6 +304,16 @@ func openOfflineDict(sourceName, text string) (*dict.OfflineDictionary, error) {
 	return od, nil
 }
 
+// findProvider looks up a provider by name in the slice.
+func findProvider(providers []config.LLMProvider, name string) *config.LLMProvider {
+	for i := range providers {
+		if providers[i].Name == name {
+			return &providers[i]
+		}
+	}
+	return nil
+}
+
 func updateDictCmd() {
 	baseURL := os.Getenv("BL_DICT_URL")
 	if baseURL == "" {
@@ -282,7 +356,7 @@ Or build your own dictionaries from word lists:
 	fmt.Println("Update complete.")
 }
 
-func dictStatusCmd() {
+func dictStatusCmd(cfg *config.Config) {
 	dir, err := dict.DictDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -315,9 +389,11 @@ func dictStatusCmd() {
 		fmt.Println("Run 'bl --update-dict' to download, or build one with 'go run scripts/build_dict/'")
 	}
 	// Show current config mode
-	cfg, _ := config.Load()
 	path, _ := config.ConfigPath()
 	fmt.Printf("\nDefault mode: %s\n", cfg.Mode)
+	fmt.Printf("LLM translation: %v\n", cfg.LLM.Enabled)
+	fmt.Printf("LLM provider: %s\n", cfg.LLM.Provider)
+	fmt.Printf("LLM target lang: %s\n", cfg.LLM.TargetLang)
 	fmt.Printf("Config file: %s\n", path)
 	fmt.Printf("Env override: BL_MODE=%s\n", os.Getenv("BL_MODE"))
 }
@@ -377,7 +453,7 @@ func output(client *dict.Rdict, text string, fmt_ dict.Format) {
 	}
 
 	if fmt_ == dict.FormatJSON {
-		out, err := json.MarshalIndent(result.Data, "", "  ")
+		out, err := json.MarshalIndent(&result.Data, "", "  ")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			return

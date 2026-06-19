@@ -179,6 +179,71 @@ func RenderGermanEntry(entry *dict.GermanEntry, colored bool) string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
+// RenderTranslationResult renders a generic LLM-based translation.
+func RenderTranslationResult(result *dict.Translation, colored bool) string {
+	var b strings.Builder
+
+	if colored {
+		fmt.Fprintf(&b, "%s# Translation%s\n", ansiBrightBlack, ansiReset)
+	} else {
+		fmt.Fprintln(&b, "# Translation")
+	}
+	fmt.Fprintln(&b)
+
+	if len(result.Translations) > 0 {
+		for _, t := range result.Translations {
+			if colored {
+				fmt.Fprintf(&b, "* %s%s%s\n", ansiGreen, t, ansiReset)
+			} else {
+				fmt.Fprintf(&b, "* %s\n", t)
+			}
+		}
+		fmt.Fprintln(&b)
+	}
+
+	if result.PartOfSpeech != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Type%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiCyan, result.PartOfSpeech, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Type  %s\n", result.PartOfSpeech)
+		}
+	}
+
+	if result.Pronunciation != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Pronunciation%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiGreen, result.Pronunciation, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Pronunciation  %s\n", result.Pronunciation)
+		}
+	}
+
+	if result.Pronunciation != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Pronunciation%s  %s%s%s\n", ansiBrightBlack, ansiReset, ansiGreen, result.Pronunciation, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Pronunciation  %s\n", result.Pronunciation)
+		}
+	}
+
+	if len(result.Examples) > 0 {
+		// Convert generic examples (Example has En/Zh fields) for display
+		fmt.Fprintln(&b, "# Examples")
+		for _, ex := range result.Examples {
+			if colored {
+				fmt.Fprintf(&b, "* %s%s%s\n", ansiGreen, ex.En, ansiReset)
+				fmt.Fprintf(&b, "  %s%s%s\n", ansiMagenta, ex.Zh, ansiReset)
+			} else {
+				fmt.Fprintf(&b, "* %s\n", ex.En)
+				fmt.Fprintf(&b, "  %s\n", ex.Zh)
+			}
+		}
+		fmt.Fprintln(&b)
+	}
+
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// RenderOneliner produces a compact single-line translation.
 func RenderOneliner(data *dict.TranslationData) string {
 	switch data.Type {
 	case dict.TypeToChinese:
@@ -192,6 +257,10 @@ func RenderOneliner(data *dict.TranslationData) string {
 	case dict.TypeGerman:
 		if data.German != nil {
 			return renderGermanOneliner(data.German)
+		}
+	case dict.TypeTranslation:
+		if data.Translation != nil {
+			return strings.Join(data.Translation.Translations, "; ")
 		}
 	}
 	return ""
@@ -226,6 +295,7 @@ func renderGermanOneliner(e *dict.GermanEntry) string {
 	return e.Word + tag + ": " + defs
 }
 
+// RenderTranslation dispatches to the appropriate renderer based on type and format.
 func RenderTranslation(data *dict.TranslationData, fmt_ dict.Format, colored bool) string {
 	switch fmt_ {
 	case dict.FormatJSON:
@@ -249,6 +319,10 @@ func RenderTranslation(data *dict.TranslationData, fmt_ dict.Format, colored boo
 		case dict.TypeGerman:
 			if data.German != nil {
 				return RenderGermanEntry(data.German, colored)
+			}
+		case dict.TypeTranslation:
+			if data.Translation != nil {
+				return RenderTranslationResult(data.Translation, colored)
 			}
 		}
 		return ""

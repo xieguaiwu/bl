@@ -30,18 +30,74 @@ func IsValidMode(s string) bool {
 	return false
 }
 
+// LLMProvider defines an OpenAI-compatible API provider for LLM-based translation.
+type LLMProvider struct {
+	Name    string `json:"name"`     // unique identifier, e.g. "nemotron", "bigpickle", "opencode"
+	BaseURL string `json:"base_url"` // API endpoint, e.g. "https://integrate.api.nvidia.com/v1"
+	Model   string `json:"model"`    // model ID, e.g. "nvidia/nemotron-3-ultra-550b-a55b"
+	APIKey  string `json:"api_key"`  // literal key or "env:VAR_NAME" to reference env var
+}
+
+// LLMConfig holds settings for LLM-based translation.
+type LLMConfig struct {
+	Enabled      bool         `json:"enabled"`                // master switch
+	Provider     string       `json:"provider"`               // name of the active provider
+	Providers    []LLMProvider `json:"providers"`             // configured providers
+	TargetLang   string       `json:"target_lang"`            // target language, e.g. "中文", "English", "日本語"
+	SystemPrompt string       `json:"system_prompt,omitempty"` // optional custom system prompt
+}
+
 // Config holds persistent configuration for bl.
 type Config struct {
 	// Mode is the default dictionary query mode:
 	//   "auto"    — try offline first, fall back to online (default)
 	//   "offline" — offline only, error if word not in local dict
 	//   "online"  — skip offline dict, always fetch from network
-	Mode Mode `json:"mode"`
+	Mode Mode      `json:"mode"`
+	LLM  LLMConfig `json:"llm,omitempty"`
+}
+
+// DefaultLLMConfig returns the default LLM configuration with built-in provider presets.
+func DefaultLLMConfig() LLMConfig {
+	return LLMConfig{
+		Enabled:  false, // opt-in by default
+		Provider: "nemotron",
+		Providers: []LLMProvider{
+			{
+				Name:    "nemotron",
+				BaseURL: "https://integrate.api.nvidia.com/v1",
+				Model:   "nvidia/nemotron-3-ultra-550b-a55b",
+				APIKey:  "env:NVIDIA_API_KEY",
+			},
+			{
+				Name:    "bigpickle",
+				BaseURL: "https://api.bigpickle.xyz/v1",
+				Model:   "gemini-2.0-flash",
+				APIKey:  "env:BIGPICKLE_API_KEY",
+			},
+			{
+				Name:    "opencode",
+				BaseURL: "https://api.opencode.com/v1",
+				Model:   "opencode-translate",
+				APIKey:  "env:OPENCODE_API_KEY",
+			},
+			{
+				Name:    "custom",
+				BaseURL: "",
+				Model:   "",
+				APIKey:  "",
+			},
+		},
+		TargetLang: "中文",
+	}
 }
 
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
-	return &Config{Mode: ModeAuto}
+	return &Config{
+		Mode: ModeAuto,
+		LLM:  DefaultLLMConfig(),
+	}
 }
 
 // ConfigPath returns the path to the config file.
@@ -73,6 +129,16 @@ func Load() (*Config, error) {
 	}
 	if !IsValidMode(string(cfg.Mode)) {
 		cfg.Mode = ModeAuto
+	}
+	// Ensure LLM fields have defaults for older configs without LLM section
+	if cfg.LLM.Providers == nil {
+		cfg.LLM.Providers = DefaultLLMConfig().Providers
+	}
+	if cfg.LLM.Provider == "" {
+		cfg.LLM.Provider = DefaultLLMConfig().Provider
+	}
+	if cfg.LLM.TargetLang == "" {
+		cfg.LLM.TargetLang = "中文"
 	}
 	return &cfg, nil
 }

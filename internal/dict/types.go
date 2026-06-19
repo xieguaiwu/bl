@@ -53,6 +53,7 @@ const (
 	TypeToChinese TranslationType = iota
 	TypeToEnglish
 	TypeGerman
+	TypeTranslation // generic LLM-based translation, any language pair
 )
 
 func (t TranslationType) String() string {
@@ -63,17 +64,32 @@ func (t TranslationType) String() string {
 		return "to_english"
 	case TypeGerman:
 		return "german"
+	case TypeTranslation:
+		return "translation"
 	}
 	return "unknown"
 }
 
+// Translation holds a generic LLM-based translation result for any language pair.
+type Translation struct {
+	InputText     string    `json:"input_text"`
+	SourceLang    string    `json:"source_lang,omitempty"`
+	TargetLang    string    `json:"target_lang,omitempty"`
+	Translations  []string  `json:"translations"`
+	Pronunciation string    `json:"pronunciation,omitempty"`
+	PartOfSpeech  string    `json:"part_of_speech,omitempty"`
+	Examples      []Example `json:"examples,omitempty"`
+}
+
 // TranslationData holds exactly one variant using a tagged JSON format:
-// {"type":"to_chinese","data":{...}} / {"type":"to_english","data":{...}} / {"type":"german","data":{...}}.
+// {"type":"to_chinese","data":{...}} / {"type":"to_english","data":{...}} /
+// {"type":"german","data":{...}} / {"type":"translation","data":{...}}.
 type TranslationData struct {
-	Type      TranslationType
-	ToChinese *ToChinese
-	ToEnglish *ToEnglish
-	German    *GermanEntry
+	Type        TranslationType
+	ToChinese   *ToChinese
+	ToEnglish   *ToEnglish
+	German      *GermanEntry
+	Translation *Translation
 }
 
 func (d *TranslationData) MarshalJSON() ([]byte, error) {
@@ -85,6 +101,8 @@ func (d *TranslationData) MarshalJSON() ([]byte, error) {
 		data = d.ToEnglish
 	case TypeGerman:
 		data = d.German
+	case TypeTranslation:
+		data = d.Translation
 	default:
 		return nil, fmt.Errorf("unknown translation type: %d", d.Type)
 	}
@@ -115,6 +133,10 @@ func (d *TranslationData) UnmarshalJSON(b []byte) error {
 		d.Type = TypeGerman
 		d.German = new(GermanEntry)
 		return json.Unmarshal(raw.Data, d.German)
+	case "translation":
+		d.Type = TypeTranslation
+		d.Translation = new(Translation)
+		return json.Unmarshal(raw.Data, d.Translation)
 	}
 	return fmt.Errorf("unknown translation type: %s", raw.Type)
 }

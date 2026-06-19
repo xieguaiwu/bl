@@ -14,6 +14,12 @@ import (
 var userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
 	"(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
+// Translator is an interface for sources that can translate via API calls
+// instead of HTML scraping.
+type Translator interface {
+	Translate(word string) (*TranslationData, error)
+}
+
 type Rdict struct {
 	client      *http.Client
 	source      DictionarySource
@@ -69,7 +75,7 @@ func (r *Rdict) cacheKey(text string) string {
 }
 
 // GetResults returns translation results.
-// Query chain: offline dictionary → cache → online fetch.
+// Query chain: offline dictionary → cache → online fetch (API or HTML).
 func (r *Rdict) GetResults(inputText string) (*FetchedResult, error) {
 	// 1. Offline dictionary (fastest path)
 	if r.offline != nil {
@@ -92,7 +98,20 @@ func (r *Rdict) GetResults(inputText string) (*FetchedResult, error) {
 		_ = r.cache.Delete(key)
 	}
 
-	// 3. Online fetch
+	// 3. Online fetch — detect if source supports API-style translation
+	if translator, ok := r.source.(Translator); ok {
+		data, err := translator.Translate(inputText)
+		if err != nil {
+			return nil, err
+		}
+		// Cache the result
+		if jsonBytes, err := json.Marshal(data); err == nil {
+			_ = r.cache.Set(key, string(jsonBytes))
+		}
+		return &FetchedResult{Data: *data, IsCached: false}, nil
+	}
+
+	// 4. HTML-based online fetch (existing path for scraping sources)
 	html, err := r.fetchSourceHTML(inputText)
 	if err != nil {
 		return nil, err

@@ -10,6 +10,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	_ "modernc.org/sqlite"
 )
@@ -71,11 +74,43 @@ func (o *OfflineDictionary) Path() string {
 }
 
 // Lookup searches the offline dictionary for the given word.
-// Returns (nil, false) if the word is not found or the dictionary is unavailable.
+// Tries exact match first, then attempts case-insensitive variants:
+// capitalizes first letter if lowercase, lowercases first letter if uppercase.
+// Does NOT handle German orthographic substitutions (ß→ss, ä→ae, ö→oe, ü→ue).
+// Returns (nil, false) if the word is not found.
 func (o *OfflineDictionary) Lookup(word string) (*TranslationData, bool) {
 	if o == nil || o.db == nil {
 		return nil, false
 	}
+
+	if data, ok := o.lookupExact(word); ok {
+		return data, true
+	}
+
+	// Try capitalizing first letter (lowercase → German noun).
+	if alt := capitalize(word); alt != word {
+		if data, ok := o.lookupExact(alt); ok {
+			return data, true
+		}
+	}
+
+	// Try full lowercase (ALL CAPS input like HAUS or STRASSE).
+	if lower := strings.ToLower(word); lower != word {
+		if data, ok := o.lookupExact(lower); ok {
+			return data, true
+		}
+		// Also try capitalized version of all-lowercased (HAUS → haus → Haus).
+		if cap := capitalize(lower); cap != lower {
+			if data, ok := o.lookupExact(cap); ok {
+				return data, true
+			}
+		}
+	}
+
+	return nil, false
+}
+
+func (o *OfflineDictionary) lookupExact(word string) (*TranslationData, bool) {
 	row := o.db.QueryRow("SELECT data FROM entries WHERE query = ?", word)
 	var compressed []byte
 	if err := row.Scan(&compressed); err != nil {
@@ -86,6 +121,17 @@ func (o *OfflineDictionary) Lookup(word string) (*TranslationData, bool) {
 		return nil, false
 	}
 	return data, true
+}
+
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	if !unicode.IsLower(r) {
+		return s
+	}
+	return string(unicode.ToUpper(r)) + s[size:]
 }
 
 // Stats returns basic statistics about the dictionary.
