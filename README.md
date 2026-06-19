@@ -56,7 +56,7 @@ bl --llm --llm-key "$OPENROUTER_API_KEY" hello
 
 | Provider | Endpoint | Default Model | Free Tier |
 |----------|----------|---------------|-----------|
-| `openrouter` | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 27+ free models
+| `openrouter` | `https://openrouter.ai/api/v1` | `qwen/qwen3-next-80b-a3b-instruct:free` | 27+ free models
 | `opencode-zen` | `https://opencode.ai/zen/v1` | `deepseek-v4-flash-free` | 5 free models
 | `nemotron` | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-ultra-550b-a55b` | Requires NVIDIA API key
 | `custom` | (user-defined) | (user-defined) | Any OpenAI-compatible endpoint

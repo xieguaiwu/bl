@@ -56,7 +56,7 @@ bl --llm --llm-key "$OPENROUTER_API_KEY" hello
 
 | Provider | 接口地址 | 默认模型 | 免费额度 |
 |----------|----------|----------|----------|
-| `openrouter` | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 27+ 免费模型
+| `openrouter` | `https://openrouter.ai/api/v1` | `qwen/qwen3-next-80b-a3b-instruct:free` | 27+ 免费模型
 | `opencode-zen` | `https://opencode.ai/zen/v1` | `deepseek-v4-flash-free` | 5 个免费模型
 | `nemotron` | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-ultra-550b-a55b` | 需 NVIDIA API key
 | `custom` | 用户自定义 | 用户自定义 | 任意 OpenAI 兼容接口
