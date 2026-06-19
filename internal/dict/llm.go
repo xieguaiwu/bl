@@ -134,7 +134,7 @@ func (s *LLMSource) Translate(word string) (*TranslationData, error) {
 			{"role": "user", "content": fmt.Sprintf("Text to translate:\n\n%s", word)},
 		},
 		"temperature": 0.1,
-		"max_tokens":  1024,
+		"max_tokens":  4096,
 	}
 
 	body, err := json.Marshal(reqBody)
