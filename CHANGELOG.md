@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.6.0] - 2026-06-19
+
+### Added
+
+- **Automatic provider fallback**: when an LLM provider fails (rate limit, timeout, etc.), bl automatically tries the next configured provider in order
+- **Auto-save working provider**: if a different provider succeeds, it's saved as the new default in ~/.config/bl/config.json for future queries
+
+### Changed
+
+- LLM query path refactored into llmQuery() with fallback loop
+- Interactive mode unchanged (uses primary provider only)
+
 ## [v1.5.0] - 2026-06-19
 
 ### Fixed
@@ -99,6 +111,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.6.0]: https://github.com/xieguaiwu/bl/compare/v1.5.0...v1.6.0
 [v1.5.0]: https://github.com/xieguaiwu/bl/compare/v1.4.0...v1.5.0
 [v1.4.0]: https://github.com/xieguaiwu/bl/compare/v1.3.0...v1.4.0
 [v1.3.0]: https://github.com/xieguaiwu/bl/compare/v1.2.0...v1.3.0

@@ -69,6 +69,15 @@ Priority: CLI flags > .blrc > global config
 | v1.3.0 | --from-lang flag for ambiguous words |
 | v1.4.0 | Default model: qwen3-next-80b-a3b-instruct:free |
 | v1.5.0 | max_tokens 4096 for reasoning models |
+| v1.6.0 | Automatic provider fallback |
+
+## Provider Fallback (v1.6.0)
+
+- When `llmQuery()` is called, it tries the configured provider first
+- If that provider fails (rate limit, timeout, network error, empty response), bl iterates through remaining providers in order
+- The first successful provider is cached to `~/.config/bl/config.json` as the new default for subsequent queries
+- Interactive (`-i`) mode and bot platforms skip fallback — they use the primary provider only
+- Cache key includes provider name, so fallback responses are properly isolated
 
 ## TODO
 
