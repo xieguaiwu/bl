@@ -498,8 +498,11 @@ func llmQuery(cfg *config.Config, rc runConfig, outfmt dict.Format, targetLang, 
 				return
 			}
 			if idx == startIdx {
-				// Only print first error.
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				if !isAPIError(err) {
+					// Input-related error (bad word, no translation) — don't fallback.
+					return
+				}
 				fmt.Fprintf(os.Stderr, "  (falling back to next provider...)\n")
 			}
 		} else {
@@ -554,6 +557,39 @@ func llmDoQuery(client *dict.Rdict, text string, outfmt dict.Format) error {
 
 	fmt.Printf("\n%s\n", indented)
 	return nil
+}
+
+// isAPIError checks if an error is caused by the API (retryable)
+// vs. bad user input (not worth retrying with another provider).
+func isAPIError(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	// API-level errors: these warrant trying another provider.
+	apiPatterns := []string{
+		"LLM API error",
+		"API request",
+		"rate limit",
+		"timeout",
+		"EOF",
+		"connection refused",
+		"no such host",
+		"tls",
+		"HTTP 429",
+		"HTTP 5",
+		"HTTP 503",
+		"HTTP 502",
+		"HTTP 500",
+		"temporarily rate-limited",
+		"Provider returned error",
+	}
+	for _, p := range apiPatterns {
+		if strings.Contains(s, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func updateDictCmd() {
