@@ -386,6 +386,121 @@ These are separate error types. Callers should check both independently.
 - [ ] Implement the same interface as `internal/cache/cache.go` (Get/Set/Delete/Close)
 - [ ] Wire in `internal/dict/rdict.go` (import the new package)
 
+## 6. LLM Translation (`--llm`)
+
+### 6.1 Overview
+
+LLM translation bypasses HTML scraping entirely. A new `Translator` interface in `rdict.go` is detected via type assertion:
+
+```go
+type Translator interface {
+    Translate(word string) (*TranslationData, error)
+}
+```
+
+When `Rdict.GetResults()` finds that the source implements `Translator`, it calls `Translate()` instead of `fetchSourceHTML()` + `Parse()`.
+
+### 6.2 LLMSource (`internal/dict/llm.go`)
+
+`LLMSource` implements `DictionarySource` (stubs `FetchURL`/`Parse`) + `Translator`:
+
+- Sends POST to OpenAI-compatible `/chat/completions` endpoint
+- Request body: system prompt + user message with the word
+- Response is parsed as structured JSON into `TranslationData{Type: TypeTranslation}`
+
+### 6.3 System Prompt
+
+Defined as `defaultTranslationPrompt` in `llm.go`. Uses `%s` for direction:
+- `"Translate the given text to 中文."` (default)
+- `"Translate the given text from French to English."` (with `--from-lang`)
+
+Custom prompts can be set via `config.json` → `llm.system_prompt`. If they contain `%s`, it's interpolated with direction. Otherwise the direction is prepended.
+
+Prompt rules (hardcoded):
+1. Return ONLY a JSON object
+2. JSON structure: `translations`, `pronunciation`, `part_of_speech`, `gender`, `plural`, `comparative`, `superlative`, `examples`
+3. Up to 3 translations
+4. Exactly 5 vivid, scene-based example sentences
+5. Gender/plural for inflected languages
+6. Comparative/superlative for adjectives
+7. Language-specific examples: English→English only, German→German+Chinese
+8. Unset fields → empty string/array
+
+### 6.4 Cache Key
+
+`llm:{provider}:{sourceLang}:{targetLang}` — isolates across providers and languages.
+
+### 6.5 Provider Fallback (v1.6+)
+
+`llmQuery()` in `main.go` implements fallback logic:
+1. Try the configured default provider
+2. On API error (rate limit, timeout, HTTP 5xx), try the next provider in order
+3. On input error (bad word, no translation), stop immediately
+4. If a fallback provider succeeds, save it as new default in `config.json`
+
+`isAPIError()` checks error strings against known API failure patterns.
+
+### 6.6 Type Translation (`internal/dict/types.go`)
+
+```go
+type Translation struct {
+    InputText     string    `json:"input_text"`
+    SourceLang    string    `json:"source_lang,omitempty"`
+    TargetLang    string    `json:"target_lang,omitempty"`
+    Translations  []string  `json:"translations"`
+    Pronunciation string    `json:"pronunciation,omitempty"`
+    PartOfSpeech  string    `json:"part_of_speech,omitempty"`
+    Gender        string    `json:"gender,omitempty"`
+    Plural        string    `json:"plural,omitempty"`
+    Comparative   string    `json:"comparative,omitempty"`
+    Superlative   string    `json:"superlative,omitempty"`
+    Examples      []Example `json:"examples,omitempty"`
+}
+```
+
+### 6.7 Renderer
+
+`RenderTranslationResult()` in `render.go` handles `TypeTranslation`, displaying:
+- Translations as bullet list
+- Part of Speech, Gender, Plural, Comparative, Superlative in header lines
+- Pronunciation
+- 5 example sentences
+
+### 6.8 Rendering Example (`-j` JSON)
+
+```json
+{
+  "data": {
+    "input_text": "morning",
+    "translations": ["早上", "上午", "早晨"],
+    "pronunciation": "zǎoshang",
+    "part_of_speech": "noun",
+    "gender": "",
+    "plural": "",
+    "comparative": "",
+    "superlative": "",
+    "examples": [
+      {"en": "She waved her hand and said hello to the mailman.", "zh": ""},
+      {"en": "He picked up the phone and said hello.", "zh": ""}
+    ]
+  },
+  "type": "translation"
+}
+```
+
+Note: `zh` is empty for English source (per prompt rule 7). For German source, `zh` contains Chinese translation.
+
+### 6.9 CLI Flags Summary
+
+| Flag | Description |
+|------|-------------|
+| `--llm` | Enable LLM translation (overrides traditional sources) |
+| `--llm-provider` | Select provider by name (openrouter, opencode-zen, nemotron) |
+| `--llm-model` | Override model ID |
+| `--llm-key` | Override API key |
+| `--to-lang` | Target language |
+| `--from-lang` | Source language (auto-detect if empty) |
+
 ## 7. Build & Test
 
 ```bash
