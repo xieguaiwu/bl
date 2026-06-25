@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.6.1] - 2026-06-25
+
+### Fixed
+
+- Smart fallback: only retry next provider on API-level errors (rate limit, timeout, HTTP 5xx, connection issues). Input-level errors (bad word, no translation results) now stop immediately instead of wasting retries on remaining providers.
+
 ## [v1.6.0] - 2026-06-19
 
 ### Added
@@ -111,6 +117,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.6.1]: https://github.com/xieguaiwu/bl/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/xieguaiwu/bl/compare/v1.5.0...v1.6.0
 [v1.5.0]: https://github.com/xieguaiwu/bl/compare/v1.4.0...v1.5.0
 [v1.4.0]: https://github.com/xieguaiwu/bl/compare/v1.3.0...v1.4.0
