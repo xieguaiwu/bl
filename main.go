@@ -203,6 +203,16 @@ func main() {
 	// Determine source: LLM or traditional
 	useLLM := rc.llm || cfg.LLM.Enabled
 
+	// Resolve target and source languages (needed by both LLM and traditional paths)
+	targetLang := rc.targetLang
+	if targetLang == "" {
+		targetLang = cfg.LLM.TargetLang
+	}
+	sourceLang := rc.sourceLang
+	if sourceLang == "" {
+		sourceLang = cfg.LLM.SourceLang
+	}
+
 	var source dict.DictionarySource
 
 	if useLLM {
@@ -232,18 +242,6 @@ func main() {
 		}
 		if rc.llmKey != "" {
 			provider.APIKey = rc.llmKey
-		}
-
-		// Resolve target language
-		targetLang := rc.targetLang
-		if targetLang == "" {
-			targetLang = cfg.LLM.TargetLang
-		}
-
-		// Resolve source language: CLI flag > .blrc > auto-detect
-		sourceLang := rc.sourceLang
-		if sourceLang == "" {
-			sourceLang = cfg.LLM.SourceLang
 		}
 
 		source = dict.NewLLMSource("llm", *provider, targetLang, sourceLang, cfg.LLM.SystemPrompt)
@@ -282,14 +280,19 @@ func main() {
 		}
 	}
 
+	outfmt := outputFmt(rc)
+
+	if useLLM {
+		llmQuery(cfg, rc, outfmt, targetLang, sourceLang)
+		return
+	}
+
 	client, err := dict.NewRdictWithOffline(source, dbPath, offlineDict, onlyOffline)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	defer client.Close()
-
-	outfmt := outputFmt(rc)
 
 	if rc.text != "" {
 		output(client, rc.text, outfmt)
@@ -419,6 +422,138 @@ func loadLocalRC() (*LocalRC, error) {
 		return nil, fmt.Errorf("parse .blrc: %w", err)
 	}
 	return &rc, nil
+}
+
+// llmQuery handles LLM translation with automatic provider fallback.
+// It tries providers in order starting from the configured default.
+// If a different provider succeeds, it saves the working one as new default.
+func llmQuery(cfg *config.Config, rc runConfig, outfmt dict.Format, targetLang, sourceLang string) {
+	providers := cfg.LLM.Providers
+	startIdx := -1
+	for i, p := range providers {
+		if p.Name == cfg.LLM.Provider {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx < 0 {
+		startIdx = 0
+	}
+
+	// Determine the text to translate.
+	text := rc.text
+	if text == "" {
+		// Try pipe mode.
+		stat, err := os.Stdin.Stat()
+		if err == nil && (stat.Mode()&os.ModeCharDevice) == 0 {
+			input, err := io.ReadAll(os.Stdin)
+			if err == nil {
+				text = strings.TrimSpace(string(input))
+			}
+		}
+	}
+
+	cp := cachePath(rc.noCache)
+
+	for i := 0; i < len(providers); i++ {
+		idx := (startIdx + i) % len(providers)
+		p := &providers[idx]
+
+		// Apply CLI model/key overrides only to the initially requested provider.
+		model := p.Model
+		apiKey := p.APIKey
+		if idx == startIdx {
+			if rc.llmModel != "" {
+				model = rc.llmModel
+			}
+			if rc.llmKey != "" {
+				apiKey = rc.llmKey
+			}
+		}
+
+		if p.BaseURL == "" || model == "" {
+			continue
+		}
+
+		workingProvider := *p
+		workingProvider.Model = model
+		workingProvider.APIKey = apiKey
+
+		source := dict.NewLLMSource("llm", workingProvider, targetLang, sourceLang, cfg.LLM.SystemPrompt)
+		client, err := dict.NewRdict(source, cp)
+		if err != nil {
+			continue
+		}
+
+		if text != "" {
+			err = llmDoQuery(client, text, outfmt)
+			client.Close()
+			if err == nil {
+				if idx != startIdx {
+					cfg.LLM.Provider = p.Name
+					if err := config.Save(cfg); err == nil {
+						fmt.Fprintf(os.Stderr, "\n  (auto-switched to \"%s\" for future queries)\n", p.Name)
+					}
+				}
+				return
+			}
+			if idx == startIdx {
+				// Only print first error.
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				fmt.Fprintf(os.Stderr, "  (falling back to next provider...)\n")
+			}
+		} else {
+			// Interactive mode.
+			client.Close()
+			fmt.Fprintf(os.Stderr, "Interactive mode with provider fallback not supported; using primary provider.\n")
+			// Just use the first configured provider.
+			firstP := providers[startIdx]
+			firstSrc := dict.NewLLMSource("llm", firstP, targetLang, sourceLang, cfg.LLM.SystemPrompt)
+			firstClient, err := dict.NewRdict(firstSrc, cp)
+			if err == nil {
+				interactiveMode(firstClient, outfmt, firstSrc.Name())
+				firstClient.Close()
+			}
+			return
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "All %d LLM providers failed.\n", len(providers))
+}
+
+func llmDoQuery(client *dict.Rdict, text string, outfmt dict.Format) error {
+	result, err := client.GetResults(text)
+	if err != nil {
+		return err
+	}
+
+	if outfmt == dict.FormatJSON {
+		out, err := json.MarshalIndent(&result.Data, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(out))
+		return nil
+	}
+
+	if outfmt == dict.FormatOneliner {
+		fmt.Println(render.RenderOneliner(&result.Data))
+		return nil
+	}
+
+	colored := isColoredOutput()
+	rendered := render.RenderTranslation(&result.Data, dict.FormatMarkdown, colored)
+	indented := indent(rendered, "  ")
+	if result.IsCached {
+		if colored {
+			indented += fmt.Sprintf("\n\n  \033[90m[ %s ] From cache\033[0m", text)
+		} else {
+			indented += fmt.Sprintf("\n\n  [ %s ] From cache", text)
+		}
+	}
+
+	fmt.Printf("\n%s\n", indented)
+	return nil
 }
 
 func updateDictCmd() {
