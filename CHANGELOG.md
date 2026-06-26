@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.6.2] - 2026-06-25
+
+### Changed
+
+- Compact translation output: translations now shown on one line separated by " / " instead of a multi-line bullet list
+
 ## [v1.6.1] - 2026-06-25
 
 ### Fixed
@@ -117,6 +123,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.6.2]: https://github.com/xieguaiwu/bl/compare/v1.6.1...v1.6.2
 [v1.6.1]: https://github.com/xieguaiwu/bl/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/xieguaiwu/bl/compare/v1.5.0...v1.6.0
 [v1.5.0]: https://github.com/xieguaiwu/bl/compare/v1.4.0...v1.5.0
