@@ -184,22 +184,19 @@ func RenderTranslationResult(result *dict.Translation, colored bool) string {
 	var b strings.Builder
 
 	if colored {
-		fmt.Fprintf(&b, "%s# Translation%s\n", ansiBrightBlack, ansiReset)
+		fmt.Fprintf(&b, "%s# Translation%s", ansiBrightBlack, ansiReset)
 	} else {
-		fmt.Fprintln(&b, "# Translation")
+		fmt.Fprintf(&b, "# Translation")
+	}
+	if len(result.Translations) > 0 {
+		if colored {
+			fmt.Fprintf(&b, "  %s%s%s", ansiGreen, strings.Join(result.Translations, " / "), ansiReset)
+		} else {
+			fmt.Fprintf(&b, "  %s", strings.Join(result.Translations, " / "))
+		}
 	}
 	fmt.Fprintln(&b)
-
-	if len(result.Translations) > 0 {
-		for _, t := range result.Translations {
-			if colored {
-				fmt.Fprintf(&b, "* %s%s%s\n", ansiGreen, t, ansiReset)
-			} else {
-				fmt.Fprintf(&b, "* %s\n", t)
-			}
-		}
-		fmt.Fprintln(&b)
-	}
+	fmt.Fprintln(&b)
 
 	if result.PartOfSpeech != "" {
 		if colored {
