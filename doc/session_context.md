@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.6.1. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.6.2. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -128,6 +128,7 @@ Priority: `CLI flags` > `.blrc` > `global config`
 | v1.5.0 | max_tokens 4096 for reasoning models |
 | v1.6.0 | Automatic provider fallback |
 | v1.6.1 | Smart fallback: skip retry on bad user input |
+| v1.6.2 | Compact translation output on single line |
 
 ## Common Tasks
 
