@@ -506,17 +506,9 @@ func llmQuery(cfg *config.Config, rc runConfig, outfmt dict.Format, targetLang, 
 				fmt.Fprintf(os.Stderr, "  (falling back to next provider...)\n")
 			}
 		} else {
-			// Interactive mode.
+			// Interactive mode — no provider fallback, use the primary provider.
+			interactiveMode(client, outfmt, source.Name())
 			client.Close()
-			fmt.Fprintf(os.Stderr, "Interactive mode with provider fallback not supported; using primary provider.\n")
-			// Just use the first configured provider.
-			firstP := providers[startIdx]
-			firstSrc := dict.NewLLMSource("llm", firstP, targetLang, sourceLang, cfg.LLM.SystemPrompt)
-			firstClient, err := dict.NewRdict(firstSrc, cp)
-			if err == nil {
-				interactiveMode(firstClient, outfmt, firstSrc.Name())
-				firstClient.Close()
-			}
 			return
 		}
 	}
