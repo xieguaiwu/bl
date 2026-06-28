@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.6.2. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.6.3. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -129,6 +129,7 @@ Priority: `CLI flags` > `.blrc` > `global config`
 | v1.6.0 | Automatic provider fallback |
 | v1.6.1 | Smart fallback: skip retry on bad user input |
 | v1.6.2 | Compact translation output on single line |
+| v1.6.3 | Provider label on each query, full sentence support |
 
 ## Common Tasks
 
@@ -150,5 +151,5 @@ bl --llm -j hello                              # raw JSON output
 ## TODO
 
 - [ ] Bot platform (Telegram/DingTalk) LLM support
-- [ ] COPR package update for Fedora
+- [ ] Renew COPR token + rebuild: copr-cli build bl https://github.com/xieguaiwu/bl/archive/v1.6.3.tar.gz
 - [ ] Reasoning model support (strip `reasoning_content` from response)
