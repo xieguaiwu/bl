@@ -486,6 +486,7 @@ func llmQuery(cfg *config.Config, rc runConfig, outfmt dict.Format, targetLang, 
 		}
 
 		if text != "" {
+			fmt.Fprintf(os.Stderr, "[%s / %s]\n", p.Name, model)
 			err = llmDoQuery(client, text, outfmt)
 			client.Close()
 			if err == nil {
