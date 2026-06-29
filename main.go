@@ -201,7 +201,16 @@ func main() {
 	}
 
 	// Determine source: LLM or traditional
-	useLLM := rc.llm || cfg.LLM.Enabled
+	// If a traditional source was explicitly requested (-g, -s), don't use LLM.
+	// Explicit --llm flag always overrides.
+	useLLM := false
+	if rc.llm {
+		useLLM = true
+	} else if rc.source != "youdao" {
+		useLLM = false
+	} else {
+		useLLM = cfg.LLM.Enabled
+	}
 
 	// Resolve target and source languages (needed by both LLM and traditional paths)
 	targetLang := rc.targetLang

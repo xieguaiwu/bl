@@ -5,6 +5,19 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.6.4] - 2026-06-25
+
+### Fixed
+
+- `-g` flag now correctly uses German dictionary instead of LLM mode when LLM is enabled in config
+- Traditional source flags (`-g`, `-s`) now take priority over `cfg.llm.enabled`; explicit `--llm` still overrides everything
+
+## [v1.6.3] - 2026-06-25
+
+### Added
+
+- **Provider label**: every LLM translation now shows `[provider / model]` so users know which backend is serving
+
 ## [v1.6.2] - 2026-06-25
 
 ### Changed
@@ -123,6 +136,8 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.6.4]: https://github.com/xieguaiwu/bl/compare/v1.6.3...v1.6.4
+[v1.6.3]: https://github.com/xieguaiwu/bl/compare/v1.6.2...v1.6.3
 [v1.6.2]: https://github.com/xieguaiwu/bl/compare/v1.6.1...v1.6.2
 [v1.6.1]: https://github.com/xieguaiwu/bl/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/xieguaiwu/bl/compare/v1.5.0...v1.6.0
