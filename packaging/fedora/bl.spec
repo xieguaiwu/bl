@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           bl
-Version:        1.6.3
+Version:        1.6.4
 Release:        1%{?dist}
 Summary:        Terminal dictionary client with LLM translation support
 
@@ -41,9 +41,11 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 %{_bindir}/bl
 
 %changelog
+* Thu Jun 25 2026 xgw <xieguaiwu@163.com> - 1.6.4-1
+- Fix: -g flag now respects traditional German dictionary instead of LLM
+
 * Thu Jun 25 2026 xgw <xieguaiwu@163.com> - 1.6.3-1
 - Add provider/model label on every LLM query
-- Compact translation output on single line
 - Smart fallback: skip retry on bad user input
 - Automatic provider fallback on API failure
 - Support --from-lang for ambiguous shared words
