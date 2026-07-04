@@ -239,6 +239,9 @@ offline dictionaries or any settings.
 | v1.6.2 | Compact translation output on single line |
 | v1.6.3 | Provider label on each query, full sentence support |
 | v1.6.4 | Fix -g flag override when LLM enabled in config |
+| v1.7.0 | Interactive LLM config UI (--config-ui / -C) |
+| v1.7.1 | Cache management (--clear-cache), lemma extraction |
+| v1.8.0 | Grammar analysis (--parse), morphological lemma/ inflection |
 
 ## Common Tasks
 
@@ -260,5 +263,8 @@ bl --llm -j hello                              # raw JSON output
 ## TODO
 
 - [ ] Bot platform (Telegram/DingTalk) LLM support
-- [ ] Renew COPR token + rebuild: copr-cli build bl https://github.com/xieguaiwu/bl/archive/v1.6.3.tar.gz
+- [ ] Renew COPR token + rebuild for new versions
 - [ ] Reasoning model support (strip `reasoning_content` from response)
+- [ ] spaCy integration: add --spacy flag for local grammar parsing via subprocess
+- [ ] Grammar analysis: add JSON output format (--json + --parse) for programmatic consumption
+- [ ] Grammar analysis: add fallback across providers (currently single-provider only)
