@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           bl
-Version:        1.6.4
+Version:        1.7.0
 Release:        1%{?dist}
 Summary:        Terminal dictionary client with LLM translation support
 
@@ -41,6 +41,12 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 %{_bindir}/bl
 
 %changelog
+* Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.7.0-1
+- Add interactive LLM configuration UI (--config-ui / -C)
+- New internal/config/tui.go: terminal menu for provider/model management
+- Select default provider, change model, toggle LLM, edit languages
+- Add/edit/delete providers with persistent config save
+
 * Thu Jun 25 2026 xgw <xieguaiwu@163.com> - 1.6.4-1
 - Fix: -g flag now respects traditional German dictionary instead of LLM
 
