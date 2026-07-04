@@ -534,8 +534,9 @@ func llmQuery(cfg *config.Config, rc runConfig, outfmt dict.Format, targetLang, 
 				}
 				return
 			}
+			// Print error for all providers (not just the default)
+			fmt.Fprintf(os.Stderr, "  error: %v\n", err)
 			if idx == startIdx {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 				if !isAPIError(err) {
 					// Input-related error (bad word, no translation) — don't fallback.
 					return

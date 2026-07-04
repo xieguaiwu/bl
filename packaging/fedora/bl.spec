@@ -46,6 +46,7 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 - Add cache management in config TUI ([c] key to clear cache)
 - Add cache.Clear() and cache.Stats() methods
 - VACUUM after clear to reclaim disk space
+- Fix: LLM fallback errors are now shown for all providers, not just the first
 
 * Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.7.0-1
 - Add interactive LLM configuration UI (--config-ui / -C)

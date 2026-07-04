@@ -15,6 +15,12 @@
   - VACUUM after clearing to reclaim disk space
 - New `cache.Clear()` + `cache.Stats()` methods for programmatic access
 
+### Fixed
+
+- **LLM fallback errors now visible**: previously when the default provider failed and
+  bl tried fallback providers, their error messages were silently hidden. Now every
+  provider's error is shown inline, so users can see why each one failed.
+
 ## [v1.7.0] - 2026-07-04
 
 ### Added
