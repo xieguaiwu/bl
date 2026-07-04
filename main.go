@@ -484,6 +484,7 @@ For German sentences, pay special attention to:
 - Case marking on determiners, adjectives, nouns
 - Separable prefix verbs
 - Modal verbs and their complements
+- Complex subordinate clause structures (nested clauses)
 
 For French sentences:
 - Verb conjugation and tense
@@ -496,12 +497,15 @@ For English sentences:
 - Phrasal verbs
 - Subordination and complementation
 
+IMPORTANT: Do not include the original sentence in your response. Start directly with the analysis.
+
 Sentence: %s
 
 Output in clean markdown with appropriate headings and formatting.`
 
 // grammarQuery sends a sentence to the LLM for grammatical structure analysis.
 // Unlike llmQuery, it bypasses JSON parsing and displays the raw markdown response.
+// Supports automatic provider fallback (same as llmQuery).
 func grammarQuery(cfg *config.Config, rc runConfig, targetLang, sourceLang string) {
 	providers := cfg.LLM.Providers
 
@@ -521,30 +525,8 @@ func grammarQuery(cfg *config.Config, rc runConfig, targetLang, sourceLang strin
 		os.Exit(1)
 	}
 
-	// Resolve provider
-	providerName := rc.llmProvider
-	if providerName == "" {
-		providerName = cfg.LLM.Provider
-	}
-	provider := findProvider(providers, providerName)
-	if provider == nil {
-		fmt.Fprintf(os.Stderr, "error: LLM provider %q not found in config\n", providerName)
-		os.Exit(1)
-	}
-
-	model := provider.Model
-	if rc.llmModel != "" {
-		model = rc.llmModel
-	}
-	apiKey := provider.APIKey
-	if rc.llmKey != "" {
-		apiKey = rc.llmKey
-	}
-
-	// Build the grammar analysis prompt
+	// Build the grammar analysis prompt (reusable across providers)
 	prompt := fmt.Sprintf(grammarAnalysisPrompt, text)
-
-	// Detect source language hint (for grammar analysis, source is the text language)
 	langHint := sourceLang
 	if langHint == "" {
 		langHint = "auto-detect"
@@ -552,16 +534,69 @@ func grammarQuery(cfg *config.Config, rc runConfig, targetLang, sourceLang strin
 	direction := fmt.Sprintf("Grammar analysis of %s text", langHint)
 	fullPrompt := fmt.Sprintf("%s\n\n%s", direction, prompt)
 
-	// Send as a direct LLM request (no JSON parsing)
-	respBody, err := sendRawLLMRequest(provider.BaseURL, model, apiKey, fullPrompt)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[%s / %s]\n", provider.Name, model)
-		fmt.Fprintf(os.Stderr, "  error: %v\n", err)
-		os.Exit(1)
+	// Find starting provider index
+	startIdx := -1
+	for i, p := range providers {
+		if p.Name == cfg.LLM.Provider {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx < 0 {
+		startIdx = 0
 	}
 
-	fmt.Fprintf(os.Stderr, "[%s / %s]\n", provider.Name, model)
-	fmt.Println(strings.TrimSpace(respBody))
+	// Try providers in order with fallback
+	for i := 0; i < len(providers); i++ {
+		idx := (startIdx + i) % len(providers)
+		p := &providers[idx]
+
+		model := p.Model
+		apiKey := p.APIKey
+		if idx == startIdx {
+			if rc.llmModel != "" {
+				model = rc.llmModel
+			}
+			if rc.llmKey != "" {
+				apiKey = rc.llmKey
+			}
+		}
+
+		if p.BaseURL == "" || model == "" {
+			continue
+		}
+
+		fmt.Fprintf(os.Stderr, "[%s / %s]\n", p.Name, model)
+		respBody, err := sendRawLLMRequest(p.BaseURL, model, apiKey, fullPrompt)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  error: %v\n", err)
+			if idx == startIdx {
+				fmt.Fprintf(os.Stderr, "  (falling back to next provider...)\n")
+			}
+			continue
+		}
+		if strings.TrimSpace(respBody) == "" {
+			fmt.Fprintf(os.Stderr, "  error: empty response\n")
+			if idx == startIdx {
+				fmt.Fprintf(os.Stderr, "  (falling back to next provider...)\n")
+			}
+			continue
+		}
+
+		// Success — print result
+		fmt.Println(strings.TrimSpace(respBody))
+
+		// Auto-switch if fallback succeeded
+		if idx != startIdx {
+			cfg.LLM.Provider = p.Name
+			if err := config.Save(cfg); err == nil {
+				fmt.Fprintf(os.Stderr, "\n  (auto-switched to \"%s\" for future queries)\n", p.Name)
+			}
+		}
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "All %d LLM providers failed for grammar analysis.\n", len(providers))
 }
 
 // sendRawLLMRequest sends a prompt to an OpenAI-compatible API and returns the raw text response.
@@ -585,7 +620,7 @@ func sendRawLLMRequest(baseURL, model, apiKey, prompt string) (string, error) {
 			{"role": "user", "content": "Please analyze the grammatical structure of this sentence."},
 		},
 		"temperature": 0.2,
-		"max_tokens":  4096,
+		"max_tokens":  8192,
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -637,7 +672,11 @@ func sendRawLLMRequest(baseURL, model, apiKey, prompt string) (string, error) {
 		return "", fmt.Errorf("LLM API returned no choices")
 	}
 
-	return chatResp.Choices[0].Message.Content, nil
+	content := strings.TrimSpace(chatResp.Choices[0].Message.Content)
+	if content == "" {
+		return "", fmt.Errorf("LLM returned empty response")
+	}
+	return content, nil
 }
 
 // truncateStr truncates a string to maxLen characters for display.
