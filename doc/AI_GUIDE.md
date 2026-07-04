@@ -237,6 +237,7 @@ This is an approximation. Some German verbs match the noun suffix pattern (and v
 | `--generate-config` | bool | `false` | Create default config file |
 | `--update-dict` | bool | `false` | Download offline dictionaries |
 | `--dict-status` | bool | `false` | Show offline dictionary info |
+| `--config-ui` / `-C` | bool | `false` | Open interactive LLM configuration UI |
 | positional | string[] | (empty) | Word(s) to translate |
 
 ### 4.2 Config File
@@ -500,6 +501,20 @@ Note: `zh` is empty for English source (per prompt rule 7). For German source, `
 | `--llm-key` | Override API key |
 | `--to-lang` | Target language |
 | `--from-lang` | Source language (auto-detect if empty) |
+
+### 6.10 Interactive Config UI (`internal/config/tui.go`)
+
+`bl --config-ui` (or `bl -C`) launches an interactive terminal UI for editing LLM configuration:
+
+- **Provider selection**: press [1]-[N] to set the default provider
+- **Model change** (`m`): choose a provider and type a new model ID
+- **Toggle LLM** (`e`): enable/disable LLM translation
+- **Language settings** (`t`/`s`): change target and source languages
+- **Provider management** (`p`/`a`/`d`): edit, add, or delete providers
+- **Save** (`q`) or **exit without saving** (`x`)
+
+All changes are written to `~/.config/bl/config.json` via `config.Save()`.
+The UI uses only the Go standard library — no external TUI dependencies.
 
 ## 7. Build & Test
 

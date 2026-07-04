@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.6.4. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.7.0. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -100,6 +100,25 @@ Place in project root. Overrides global config:
 ```
 
 Priority: `CLI flags` > `.blrc` > `global config`
+
+### Interactive Config UI (v1.7+)
+
+Run `bl --config-ui` or `bl -C` to open an interactive terminal UI for editing LLM configuration:
+
+```
+bl -C
+```
+
+From the TUI you can:
+- **Select default provider** — enter the provider's number ([1]-[N])
+- **Change model** (`m`) — pick a provider, then type a new model ID
+- **Toggle LLM** (`e`) — enable or disable LLM translation
+- **Change target/source language** (`t`/`s`)
+- **Edit provider** (`p`) — modify name, base URL, model, or API key
+- **Add/delete providers** (`a`/`d`)
+- **Save to config** (`q`) or **exit without saving** (`x`)
+
+The UI reads from and writes to `~/.config/bl/config.json`. Changes persist across sessions.
 
 ## User Preferences (from MEMORY.md)
 

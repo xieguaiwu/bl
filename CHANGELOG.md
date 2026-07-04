@@ -5,6 +5,19 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.7.0] - 2026-07-04
+
+### Added
+
+- **Interactive LLM Configuration UI** (`bl --config-ui` / `bl -C`):
+  - Select default provider by entering its number
+  - Change model for any provider
+  - Toggle LLM translation on/off
+  - Change target/source language
+  - Add, edit, or delete providers
+  - Changes saved to `~/.config/bl/config.json` on exit
+  - Pure standard-library TUI — no external dependencies
+
 ## [v1.6.4] - 2026-06-25
 
 ### Fixed

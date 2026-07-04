@@ -32,6 +32,7 @@ type runConfig struct {
 	dictStatus bool
 	genConfig  bool
 	modeFlag   string // "auto", "offline", "online" — sets config and exits
+	configUI   bool   // interactive LLM config UI
 
 	// LLM translation flags
 	llm          bool
@@ -59,6 +60,8 @@ func parseFlags() runConfig {
 	flag.BoolVar(&cfg.dictStatus, "dict-status", false, "show offline dictionary status")
 	flag.BoolVar(&cfg.genConfig, "generate-config", false, "generate default config file")
 	flag.StringVar(&cfg.modeFlag, "mode", "", "set default mode (auto/offline/online) and save to config")
+	flag.BoolVar(&cfg.configUI, "config-ui", false, "open interactive LLM configuration UI")
+	flag.BoolVar(&cfg.configUI, "C", false, "shorthand for --config-ui")
 	// LLM flags
 	flag.BoolVar(&cfg.llm, "llm", false, "use LLM-based translation (requires API key in config or env)")
 	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
@@ -74,6 +77,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  Use --mode offline  to permanently switch to offline mode\n")
 		fmt.Fprintf(os.Stderr, "  Use --mode online   to permanently switch to online mode\n")
 		fmt.Fprintf(os.Stderr, "  Use --mode auto     to restore default (try offline, then online)\n")
+		fmt.Fprintf(os.Stderr, "  Use --config-ui (-C) to interactively configure LLM providers/models\n")
 		fmt.Fprintf(os.Stderr, "\nLLM Translation (grammar: gender/plural/comparative for inflected languages):\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello                          Default provider+model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider openrouter hello       Named provider\n")
@@ -104,6 +108,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-model google/gemma-4-31b-it:free hello   Pick model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang French Raisonnement          French 'reasoning'\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang German Handy                German 'mobile phone'\n")
+		fmt.Fprintf(os.Stderr, "  bl --config-ui                  interactive LLM config setup\n")
 	}
 	flag.Parse()
 
@@ -147,6 +152,15 @@ func main() {
 			fmt.Printf("Created default config at %s\n", path)
 		} else {
 			fmt.Println("Config file already exists, not overwriting.")
+		}
+		return
+	}
+
+	// --config-ui: open interactive LLM configuration
+	if rc.configUI {
+		if err := config.InteractiveConfig(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
 		}
 		return
 	}
