@@ -2,32 +2,85 @@
 
 [English](README.md) | **中文**
 
-一款用 Go 编写的终端词典客户端。支持 **有道词典**（英 ⇄ 中）和 **WoerterNet**（德语）查询，内置 SQLite 缓存、离线词典和持久化配置。同时支持多平台机器人（Telegram、钉钉）。
+一款用 Go 编写的终端词典客户端。三种查询路径集于一身：**离线词典** → **网页爬取** → **LLM 分析**。
+
+```bash
+# 查词（有道英⇄中）
+bl hello
+
+# 德语词典（变位、变格、IPA）
+bl -g Haus
+
+# LLM 翻译（任意语言对）
+bl --llm ging
+# → 原型：gehen（gehen 的过去式）
+
+# 语法分析（v1.8）
+bl --llm --parse "Der Mann geht nach Hause."
+# → Token 表、词性、依存关系、短语树
+```
 
 > 本项目受 [rdict](https://github.com/Guanran928/rdict) 启发而开发，感谢原作者的创意。
 
-## 通过 COPR 安装（Fedora）
+## 快速安装
 
 ```bash
-sudo dnf install dnf-plugins-core
-sudo dnf copr enable xieguaiwu/bl
-sudo dnf install bl
-```
+# Fedora (COPR)
+sudo dnf copr enable xieguaiwu/bl && sudo dnf install bl
 
-## 快速开始
-
-```bash
-go build -o bl . && ./bl hello
+# 源码编译
+git clone https://github.com/xieguaiwu/bl.git && cd bl && go build -o bl .
 ```
 
 ## 功能特性
 
-- **多数据源**：有道词典（默认英⇄中）、WoerterNet（德语，通过 `-g` 参数）
-- **三种查询模式**：`auto`（离线→缓存→在线）、`offline`（仅离线）、`online`（仅在线）
-- **离线词典**：预构建的 SQLite 数据库，支持 zlib 压缩
-- **SQLite 缓存**：自动缓存查询结果，可通过 `--no-cache` 跳过
-- **输出格式**：Markdown（默认）、JSON（`-j`）、单行（`-o`）
-- **ANSI 颜色**：自动检测终端支持，尊重 `NO_COLOR` 环境变量
+### 词典查询
+- **有道词典**（默认英⇄中）— 网页爬取
+- **WoerterNet**（德语 `-g`）— 动词变位、名词变格、IPA、CEFR 等级
+- **离线词典** — 预构建 SQLite 数据库，无需网络（`--offline`）
+- **三种模式**：`auto`（离线→缓存→在线）、`offline`、`online`
+
+### LLM 翻译（`--llm`）
+- 任意语言对之间的 AI 翻译，支持 OpenAI 兼容 API
+- **词形还原**（v1.8）：曲折变化自动还原为词典原型
+  - `ging` → 原型 `gehen`（过去式）
+  - `besser` → 原型 `gut`（比较级）
+  - `ran` → 原型 `run`
+- 丰富语法信息：词性、性数、比较级、最高级、发音
+- **多 Provider 自动容灾**
+- **配置界面**：`bl -C` 交互式管理 Provider 和模型
+
+### 语法分析（`--parse`，v1.8）
+用 LLM 分析完整句子：
+```
+bl --llm --parse "Der Mann geht nach Hause."
+
+| Token | 词性 | 原型   | 形态特征           | 依存关系 |
+|-------|------|--------|--------------------|----------|
+| Der   | DET  | der    | 阳性、单数、主格    | det      |
+| Mann  | NOUN | Mann   | 阳性、单数、主格    | nsubj    |
+| geht  | VERB | gehen  | 直陈、现在、三单    | root     |
+| nach  | ADP  | nach   | —                  | case     |
+| Hause | NOUN | Haus   | 中性、单数、与格    | obl      |
+```
+- 逐词词性标注 + 依存分析
+- 短语结构和分句分析
+- 语言特化：德语 V2/格、法语配合/赘词、英语时态/体
+
+### 输出与交互
+- **格式**：Markdown（默认）、JSON（`-j`）、单行（`-o`）
+- **ANSI 颜色**（自动检测，尊重 `NO_COLOR`）
+- **交互式 REPL**：`bl`（无参数）→ `[bl]#` 提示符
+- **管道模式**：`echo "你好" | bl`
+
+### 机器人支持
+- Telegram 机器人（`./cmd/telegram/`）
+- 钉钉机器人（`./cmd/dingtalk/`）
+
+### 缓存与存储
+- **SQLite 查询缓存** 位于 `~/.cache/bl/cache.db`（WAL 模式）
+- **缓存管理**：`bl --clear-cache`
+- **离线词典** 位于 `~/.config/bl/dict/`
 - **交互模式**：REPL 提示符 `[bl]#`
 - **机器人平台**：Telegram 机器人 + 钉钉 Webhook
 - **LLM 翻译**：通过大语言模型实现任意语言之间的 AI 翻译，无需爬取网页
