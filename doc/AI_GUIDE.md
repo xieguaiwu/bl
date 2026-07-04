@@ -424,13 +424,16 @@ Custom prompts can be set via `config.json` → `llm.system_prompt`. If they con
 
 Prompt rules (hardcoded):
 1. Return ONLY a JSON object
-2. JSON structure: `translations`, `pronunciation`, `part_of_speech`, `gender`, `plural`, `comparative`, `superlative`, `examples`
+2. JSON structure: `translations`, `pronunciation`, `part_of_speech`, `gender`, `plural`, `comparative`, `superlative`, `lemma`, `lemma_info`, `inflection`, `examples`
 3. Up to 3 translations
 4. Exactly 5 vivid, scene-based example sentences
 5. Gender/plural for inflected languages
 6. Comparative/superlative for adjectives
 7. Language-specific examples: English→English only, German→German+Chinese
 8. Unset fields → empty string/array
+9. **Morphological analysis**: if the input is an inflected form (past tense, plural,
+   conjugated verb, comparative, etc.), identify the lemma (base form) and describe
+   the grammatical form in `lemma`, `lemma_info`, and `inflection` fields
 
 ### 6.4 Cache Key
 
@@ -460,6 +463,9 @@ type Translation struct {
     Plural        string    `json:"plural,omitempty"`
     Comparative   string    `json:"comparative,omitempty"`
     Superlative   string    `json:"superlative,omitempty"`
+    Lemma         string    `json:"lemma,omitempty"`          // base/dictionary form
+    LemmaInfo     string    `json:"lemma_info,omitempty"`     // relationship explanation
+    Inflection    string    `json:"inflection,omitempty"`     // grammatical form info
     Examples      []Example `json:"examples,omitempty"`
 }
 ```
@@ -467,6 +473,9 @@ type Translation struct {
 ### 6.7 Renderer
 
 `RenderTranslationResult()` in `render.go` handles `TypeTranslation`, displaying:
+- **Lemma/Inflection section** (new): if the input is an inflected form, shows:
+  - `# Lemma` — the base dictionary form (e.g. "gehen" for "ging")
+  - `# Form` — the grammatical form description (e.g. "1st/3rd person singular past")
 - Translations as bullet list
 - Part of Speech, Gender, Plural, Comparative, Superlative in header lines
 - Pronunciation
@@ -506,8 +515,23 @@ Note: `zh` is empty for English source (per prompt rule 7). For German source, `
 | `--llm-key` | Override API key |
 | `--to-lang` | Target language |
 | `--from-lang` | Source language (auto-detect if empty) |
+| `--parse` | Grammar analysis: parse sentence structure (requires --llm) |
 
-### 6.10 Interactive Config UI (`internal/config/tui.go`)
+### 6.10 Grammar Analysis (`--parse`)
+
+`bl --llm --parse "sentence"` performs full grammatical structure analysis using the LLM.
+Instead of the translation prompt, a specialized grammarian prompt is sent. The response
+includes a token table (POS, lemma, morphology, dependency), sentence structure tree,
+key grammatical observations, and a translation.
+
+Implementation in `main.go`:
+- `grammarQuery()` — resolves provider, builds prompt, sends raw LLM request (no JSON parsing)
+- `sendRawLLMRequest()` — shared helper for bare-text API calls
+- `grammarAnalysisPrompt` constant — detailed prompt covering DE/FR/EN specifics
+
+The `--parse` flag requires `--llm` and cannot be combined with traditional sources.
+
+### 6.11 Interactive Config UI (`internal/config/tui.go`)
 
 `bl --config-ui` (or `bl -C`) launches an interactive terminal UI for editing LLM configuration:
 

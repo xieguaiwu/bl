@@ -5,6 +5,36 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.8.0] - 2026-07-04
+
+### Added
+
+- **Grammar analysis** (`bl --llm --parse <sentence>`): full grammatical structure
+  analysis via LLM. Output includes:
+  - Token table: POS, lemma, morphological features, dependency relations
+  - Sentence structure: phrase types (NP/VP/PP), clause analysis
+  - Key observations: verb position, case marking, agreement, fixed phrases
+  - Natural translation
+  - Supports German (V2, case system), French (agreement, clitics), English (tense, aspect)
+  - New: `grammarQuery()`, `sendRawLLMRequest()`, `grammarAnalysisPrompt`
+- **Morphological analysis (lemma extraction)**: LLM now identifies the base/dictionary
+  form of inflected words. Examples:
+  - "ging" → lemma "gehen" with "Past tense of gehen"
+  - "besser" → lemma "gut" with "Comparative form of gut"
+  - "ran" → lemma "run" with "past tense of run"
+  - "children" → lemma "child" with "Plural of child"
+  - New output fields: `# Lemma`, `# Form` sections in LLM translation results
+  - New Translation struct fields: `lemma`, `lemma_info`, `inflection`
+  - Renderer updated to display lemma/ inflection info
+- **Documentation**: open-source grammar parser reference table (spaCy, Stanza,
+  TreeTagger, Stanford CoreNLP) with integration examples
+
+### Fixed
+
+- **LLM fallback errors now visible**: previously when the default provider failed and
+  bl tried fallback providers, their error messages were silently hidden. Now every
+  provider's error is shown inline, so users can see why each one failed.
+
 ## [v1.7.1] - 2026-07-04
 
 ### Added
@@ -165,6 +195,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.8.0]: https://github.com/xieguaiwu/bl/compare/v1.7.1...v1.8.0
 [v1.7.1]: https://github.com/xieguaiwu/bl/compare/v1.7.0...v1.7.1
 [v1.7.0]: https://github.com/xieguaiwu/bl/compare/v1.6.4...v1.7.0
 [v1.6.4]: https://github.com/xieguaiwu/bl/compare/v1.6.3...v1.6.4

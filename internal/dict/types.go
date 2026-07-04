@@ -75,6 +75,8 @@ type Translation struct {
 	InputText     string    `json:"input_text"`
 	SourceLang    string    `json:"source_lang,omitempty"`
 	TargetLang    string    `json:"target_lang,omitempty"`
+	Lemma         string    `json:"lemma,omitempty"`          // base/dictionary form (e.g. "ging" → "gehen", "ran" → "run")
+	LemmaInfo     string    `json:"lemma_info,omitempty"`     // explanation of the morphological change (e.g. "Past tense of gehen")
 	Translations  []string  `json:"translations"`
 	Pronunciation string    `json:"pronunciation,omitempty"`
 	PartOfSpeech  string    `json:"part_of_speech,omitempty"`
@@ -82,6 +84,7 @@ type Translation struct {
 	Plural        string    `json:"plural,omitempty"`
 	Comparative   string    `json:"comparative,omitempty"`
 	Superlative   string    `json:"superlative,omitempty"`
+	Inflection    string    `json:"inflection,omitempty"`     // grammatical form info (e.g. "3rd person singular past", "plural")
 	Examples      []Example `json:"examples,omitempty"`
 }
 

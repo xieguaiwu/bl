@@ -183,6 +183,31 @@ func RenderGermanEntry(entry *dict.GermanEntry, colored bool) string {
 func RenderTranslationResult(result *dict.Translation, colored bool) string {
 	var b strings.Builder
 
+	// ── Lemma / inflection section ──
+	if result.Lemma != "" && result.Lemma != result.InputText {
+		if colored {
+			fmt.Fprintf(&b, "%s# Lemma%s  %s%s%s", ansiBrightBlack, ansiReset, ansiGreen, result.Lemma, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Lemma  %s", result.Lemma)
+		}
+		if result.LemmaInfo != "" {
+			if colored {
+				fmt.Fprintf(&b, "  %s(%s)%s", ansiYellow, result.LemmaInfo, ansiReset)
+			} else {
+				fmt.Fprintf(&b, "  (%s)", result.LemmaInfo)
+			}
+		}
+		fmt.Fprintln(&b)
+		fmt.Fprintln(&b)
+	}
+	if result.Inflection != "" {
+		if colored {
+			fmt.Fprintf(&b, "%s# Form%s  %s%s%s\n\n", ansiBrightBlack, ansiReset, ansiCyan, result.Inflection, ansiReset)
+		} else {
+			fmt.Fprintf(&b, "# Form  %s\n\n", result.Inflection)
+		}
+	}
+
 	if colored {
 		fmt.Fprintf(&b, "%s# Translation%s", ansiBrightBlack, ansiReset)
 	} else {

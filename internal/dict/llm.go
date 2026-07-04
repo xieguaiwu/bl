@@ -84,7 +84,13 @@ RULES:
    - English source text: examples should be English-only in the "en" field; set "zh" to empty string.
    - German source text: each example must include both German (in "en") and Chinese translation (in "zh").
    - Other languages: include both original and translation.
-8. Set any field that is not relevant or unknown to empty string (or empty array for examples).`
+8. Set any field that is not relevant or unknown to empty string (or empty array for examples).
+9. **MORPHOLOGICAL ANALYSIS** — This is critical. If the input text looks like an inflected form (past tense, plural, conjugated verb, declined adjective, comparative/superlative, derived word, etc.), you MUST:
+   a. Identify the dictionary/lemma form and put it in the "lemma" field.
+   b. Explain the morphological relationship in "lemma_info" (e.g. "Past tense of gehen", "Plural of Kind", "Comparative form of gut").
+   c. Describe the grammatical form in "inflection" (e.g. "3rd person singular simple past", "nominative/accusative neuter plural", "masculine dative singular").
+   d. Provide translations and examples based on the LEMMA's meaning — the user wants to understand the core word.
+   If the input is already a dictionary/base form, set "lemma" to the same as input_text and "lemma_info" to empty.`
 
 // Name returns a composite source identifier for cache key isolation.
 func (s *LLMSource) Name() string {

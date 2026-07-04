@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           bl
-Version:        1.7.1
+Version:        1.8.0
 Release:        1%{?dist}
 Summary:        Terminal dictionary client with LLM translation support
 
@@ -41,6 +41,13 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 %{_bindir}/bl
 
 %changelog
+* Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.8.0-1
+- Add --parse flag: LLM-based grammatical structure analysis
+- Add lemma extraction: LLM identifies base form of inflected words
+- Add grammarAnalysisPrompt for DE/FR/EN grammar
+- Add sendRawLLMRequest() for bypass-JSON API calls
+- Add open-source parser reference (spaCy, Stanza, TreeTagger)
+
 * Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.7.1-1
 - Add --clear-cache: clear all cached query results with size info
 - Add cache management in config TUI ([c] key to clear cache)

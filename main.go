@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -35,6 +36,7 @@ type runConfig struct {
 	modeFlag   string // "auto", "offline", "online" — sets config and exits
 	configUI   bool   // interactive LLM config UI
 	clearCache bool   // clear query cache
+	doParse    bool   // grammar analysis mode
 
 	// LLM translation flags
 	llm          bool
@@ -65,6 +67,7 @@ func parseFlags() runConfig {
 	flag.BoolVar(&cfg.configUI, "config-ui", false, "open interactive LLM configuration UI")
 	flag.BoolVar(&cfg.configUI, "C", false, "shorthand for --config-ui")
 	flag.BoolVar(&cfg.clearCache, "clear-cache", false, "clear all cached query results")
+	flag.BoolVar(&cfg.doParse, "parse", false, "grammar analysis: parse sentence structure (requires --llm)")
 	// LLM flags
 	flag.BoolVar(&cfg.llm, "llm", false, "use LLM-based translation (requires API key in config or env)")
 	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
@@ -82,6 +85,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  Use --mode auto     to restore default (try offline, then online)\n")
 		fmt.Fprintf(os.Stderr, "  Use --config-ui (-C) to interactively configure LLM providers/models\n")
 		fmt.Fprintf(os.Stderr, "  Use --clear-cache   to delete all cached query results and free disk space\n")
+		fmt.Fprintf(os.Stderr, "  Use --llm --parse <sentence>  to analyze grammatical structure\n")
 		fmt.Fprintf(os.Stderr, "\nLLM Translation (grammar: gender/plural/comparative for inflected languages):\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello                          Default provider+model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider openrouter hello       Named provider\n")
@@ -108,6 +112,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --dict-status            show offline + LLM config status\n")
 		fmt.Fprintf(os.Stderr, "  bl --clear-cache            clear all cached query results\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello              LLM translation (default provider)\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --parse sentence   grammar analysis (parse sentence structure)\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 konnichiwa   LLM to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang English Haus           German noun → English\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-model google/gemma-4-31b-it:free hello   Pick model\n")
@@ -319,7 +324,11 @@ func main() {
 	outfmt := outputFmt(rc)
 
 	if useLLM {
-		llmQuery(cfg, rc, outfmt, targetLang, sourceLang)
+		if rc.doParse {
+			grammarQuery(cfg, rc, targetLang, sourceLang)
+		} else {
+			llmQuery(cfg, rc, outfmt, targetLang, sourceLang)
+		}
 		return
 	}
 
@@ -458,6 +467,185 @@ func loadLocalRC() (*LocalRC, error) {
 		return nil, fmt.Errorf("parse .blrc: %w", err)
 	}
 	return &rc, nil
+}
+
+// grammarAnalysisPrompt is sent to the LLM for sentence-level grammar analysis.
+// It requests a markdown-formatted grammatical breakdown.
+const grammarAnalysisPrompt = `You are a professional grammarian and linguist. Analyze the grammatical structure of the following sentence.
+
+Provide a thorough analysis including:
+1. **Token Table**: a table with columns for Token, POS (part of speech), Lemma, Morphological Features, and Dependency Relation
+2. **Sentence Structure**: identify the main clause, subordinate clauses, phrase types (NP, VP, PP, etc.)
+3. **Key Observations**: note any interesting grammatical phenomena (case marking, verb position, agreement, etc.)
+4. **Translation**: a natural translation
+
+For German sentences, pay special attention to:
+- Verb position (V2 in main clauses, V-final in subordinate clauses)
+- Case marking on determiners, adjectives, nouns
+- Separable prefix verbs
+- Modal verbs and their complements
+
+For French sentences:
+- Verb conjugation and tense
+- Agreement (gender/number for adjectives and past participles)
+- Pronoun placement (clitics, en/y)
+
+For English sentences:
+- Tense and aspect
+- Modal verbs
+- Phrasal verbs
+- Subordination and complementation
+
+Sentence: %s
+
+Output in clean markdown with appropriate headings and formatting.`
+
+// grammarQuery sends a sentence to the LLM for grammatical structure analysis.
+// Unlike llmQuery, it bypasses JSON parsing and displays the raw markdown response.
+func grammarQuery(cfg *config.Config, rc runConfig, targetLang, sourceLang string) {
+	providers := cfg.LLM.Providers
+
+	// Resolve the text to analyze.
+	text := rc.text
+	if text == "" {
+		stat, err := os.Stdin.Stat()
+		if err == nil && (stat.Mode()&os.ModeCharDevice) == 0 {
+			input, err := io.ReadAll(os.Stdin)
+			if err == nil {
+				text = strings.TrimSpace(string(input))
+			}
+		}
+	}
+	if text == "" {
+		fmt.Fprintln(os.Stderr, "error: no text provided for grammar analysis")
+		os.Exit(1)
+	}
+
+	// Resolve provider
+	providerName := rc.llmProvider
+	if providerName == "" {
+		providerName = cfg.LLM.Provider
+	}
+	provider := findProvider(providers, providerName)
+	if provider == nil {
+		fmt.Fprintf(os.Stderr, "error: LLM provider %q not found in config\n", providerName)
+		os.Exit(1)
+	}
+
+	model := provider.Model
+	if rc.llmModel != "" {
+		model = rc.llmModel
+	}
+	apiKey := provider.APIKey
+	if rc.llmKey != "" {
+		apiKey = rc.llmKey
+	}
+
+	// Build the grammar analysis prompt
+	prompt := fmt.Sprintf(grammarAnalysisPrompt, text)
+
+	// Detect source language hint (for grammar analysis, source is the text language)
+	langHint := sourceLang
+	if langHint == "" {
+		langHint = "auto-detect"
+	}
+	direction := fmt.Sprintf("Grammar analysis of %s text", langHint)
+	fullPrompt := fmt.Sprintf("%s\n\n%s", direction, prompt)
+
+	// Send as a direct LLM request (no JSON parsing)
+	respBody, err := sendRawLLMRequest(provider.BaseURL, model, apiKey, fullPrompt)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[%s / %s]\n", provider.Name, model)
+		fmt.Fprintf(os.Stderr, "  error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Fprintf(os.Stderr, "[%s / %s]\n", provider.Name, model)
+	fmt.Println(strings.TrimSpace(respBody))
+}
+
+// sendRawLLMRequest sends a prompt to an OpenAI-compatible API and returns the raw text response.
+func sendRawLLMRequest(baseURL, model, apiKey, prompt string) (string, error) {
+	if baseURL == "" || model == "" {
+		return "", fmt.Errorf("provider not fully configured (base_url or model empty)")
+	}
+
+	resolvedKey := apiKey
+	if strings.HasPrefix(resolvedKey, "env:") {
+		resolvedKey = os.Getenv(strings.TrimPrefix(resolvedKey, "env:"))
+	}
+	if resolvedKey == "" {
+		return "", fmt.Errorf("API key not resolved")
+	}
+
+	reqBody := map[string]interface{}{
+		"model": model,
+		"messages": []map[string]string{
+			{"role": "system", "content": prompt},
+			{"role": "user", "content": "Please analyze the grammatical structure of this sentence."},
+		},
+		"temperature": 0.2,
+		"max_tokens":  4096,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	url := strings.TrimRight(baseURL, "/") + "/chat/completions"
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+resolvedKey)
+
+	client := &http.Client{Timeout: 90 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("LLM API error (HTTP %d): %s", resp.StatusCode, truncateStr(string(respData), 500))
+	}
+
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error,omitempty"`
+	}
+	if err := json.Unmarshal(respData, &chatResp); err != nil {
+		return "", fmt.Errorf("parse API response: %w", err)
+	}
+	if chatResp.Error != nil && chatResp.Error.Message != "" {
+		return "", fmt.Errorf("LLM API error: %s", chatResp.Error.Message)
+	}
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("LLM API returned no choices")
+	}
+
+	return chatResp.Choices[0].Message.Content, nil
+}
+
+// truncateStr truncates a string to maxLen characters for display.
+func truncateStr(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // llmQuery handles LLM translation with automatic provider fallback.

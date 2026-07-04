@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.7.1. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.8.0. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -100,6 +100,82 @@ Place in project root. Overrides global config:
 ```
 
 Priority: `CLI flags` > `.blrc` > `global config`
+
+### Morphological Analysis (v1.7.1+)
+
+When querying an inflected word (past tense, plural, comparative, conjugated verb, etc.),
+the LLM now identifies the base/dictionary form (lemma):
+
+```
+$ bl --llm ging
+[opencode-zen / deepseek-v4-flash-free]
+
+# Lemma  gehen  (Past tense of gehen)
+# Form  1st/3rd person singular simple past
+# Translation  去了 / 走
+# Type  verb
+# Pronunciation  /ɡɪŋ/
+
+# Examples
+* Er ging langsam die Straße entlang.
+  他沿着街道慢慢走。
+...
+```
+
+This works for any language the LLM supports. The new fields are:
+- `lemma`: base/dictionary form (e.g. "run" for "ran", "gut" for "besser")
+- `lemma_info`: explanation of the morphological change
+- `inflection`: grammatical form description
+
+### Grammar Analysis (v1.8.0+)
+
+`bl --llm --parse <sentence>` performs full grammatical structure analysis:
+
+```bash
+bl --llm --parse "Der Mann geht nach Hause."
+```
+
+Output includes:
+- **Token Table**: POS tag, lemma, morphological features, dependency relation per word
+- **Sentence Structure**: main clause, phrase types (NP, VP, PP), phrase structure tree
+- **Key Observations**: verb position (V2), case marking, agreement, fixed phrases
+- **Translation**: natural translation of the sentence
+
+Supported languages: German, French, English, and any language the LLM understands.
+
+#### Open-Source Grammar Parser Reference
+
+For power users who want faster/reproducible local parsing, these open-source tools
+can be used alongside bl:
+
+| Tool | Language | Supported | License | Integration |
+|------|----------|-----------|---------|-------------|
+| **spaCy** | Python | EN, DE, FR (17+ langs) | MIT | Subprocess or REST API |
+| **Stanza** | Python | EN, DE, FR (60+ langs) | Apache 2.0 | Subprocess or REST API |
+| **TreeTagger** | C++ | EN, DE, FR (23 langs) | Free for non-commercial | Subprocess |
+| **Stanford CoreNLP** | Java | EN, DE, FR, AR, ZH | GPL v2 | HTTP server |
+
+**spaCy** is the recommended complement — it provides tokenization, POS tagging,
+dependency parsing, and lemmatization with high accuracy:
+- English: ~97% POS accuracy, ~95% dependency accuracy
+- German: ~96% POS accuracy, ~93% dependency accuracy  
+- French: ~96% POS accuracy, ~93% dependency accuracy
+
+To use spaCy with bl, install it and call via shell:
+```bash
+pip install spacy
+python -m spacy download de_core_news_sm  # for German
+python -m spacy download en_core_web_sm  # for English
+python -m spacy download fr_core_news_sm  # for French
+
+echo 'Der Mann geht nach Hause.' | python3 -c "
+import spacy, sys
+nlp = spacy.load(\"de_core_news_sm\")
+doc = nlp(sys.stdin.read())
+for token in doc:
+    print(f'{token.text:10} {token.pos_:6} {token.lemma_:10} {token.dep_:10} {token.head.text}')
+"
+```
 
 ### Interactive Config UI (v1.7.0+)
 
