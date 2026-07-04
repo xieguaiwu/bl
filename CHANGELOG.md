@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.7.1] - 2026-07-04
+
+### Added
+
+- **Cache management**:
+  - `bl --clear-cache`: clear all cached query results with size summary
+  - Cache UI in config TUI (`[c]` key): shows entry count and size, prompts before clearing
+  - VACUUM after clearing to reclaim disk space
+- New `cache.Clear()` + `cache.Stats()` methods for programmatic access
+
 ## [v1.7.0] - 2026-07-04
 
 ### Added
@@ -15,13 +25,8 @@
   - Toggle LLM translation on/off
   - Change target/source language
   - Add, edit, or delete providers
-  - Clear query cache from TUI (`[c]` key)
   - Changes saved to `~/.config/bl/config.json` on exit
   - Pure standard-library TUI — no external dependencies
-- **Cache management**:
-  - `bl --clear-cache`: clear all cached query results with size summary
-  - Cache UI in config TUI: shows entry count and size, prompts before clearing
-  - New `cache.Clear()` + `cache.Stats()` methods for programmatic access
 
 ## [v1.6.4] - 2026-06-25
 
@@ -154,6 +159,8 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.7.1]: https://github.com/xieguaiwu/bl/compare/v1.7.0...v1.7.1
+[v1.7.0]: https://github.com/xieguaiwu/bl/compare/v1.6.4...v1.7.0
 [v1.6.4]: https://github.com/xieguaiwu/bl/compare/v1.6.3...v1.6.4
 [v1.6.3]: https://github.com/xieguaiwu/bl/compare/v1.6.2...v1.6.3
 [v1.6.2]: https://github.com/xieguaiwu/bl/compare/v1.6.1...v1.6.2

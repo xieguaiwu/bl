@@ -1,8 +1,8 @@
 %global debug_package %{nil}
 
 Name:           bl
-Version:        1.7.0
-Release:        2%{?dist}
+Version:        1.7.1
+Release:        1%{?dist}
 Summary:        Terminal dictionary client with LLM translation support
 
 License:        MIT
@@ -41,10 +41,11 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 %{_bindir}/bl
 
 %changelog
-* Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.7.0-2
+* Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.7.1-1
 - Add --clear-cache: clear all cached query results with size info
 - Add cache management in config TUI ([c] key to clear cache)
 - Add cache.Clear() and cache.Stats() methods
+- VACUUM after clear to reclaim disk space
 
 * Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.7.0-1
 - Add interactive LLM configuration UI (--config-ui / -C)

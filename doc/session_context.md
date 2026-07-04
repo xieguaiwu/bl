@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.7.0. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.7.1. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -101,7 +101,7 @@ Place in project root. Overrides global config:
 
 Priority: `CLI flags` > `.blrc` > `global config`
 
-### Interactive Config UI (v1.7+)
+### Interactive Config UI (v1.7.0+)
 
 Run `bl --config-ui` or `bl -C` to open an interactive terminal UI for editing LLM configuration:
 
@@ -120,7 +120,7 @@ From the TUI you can:
 
 The UI reads from and writes to `~/.config/bl/config.json`. Changes persist across sessions.
 
-### Cache Management (v1.7+)
+### Cache Management (v1.7.1+)
 
 Clear all cached query results with `bl --clear-cache`:
 
