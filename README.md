@@ -2,35 +2,86 @@
 
 **English** | [中文](README.zh-CN.md)
 
-A terminal-based dictionary client written in Go. Supports **Youdao** (EN ⇄ ZH) and **WoerterNet** (German) dictionary lookups with SQLite caching, offline dictionaries, and persistent configuration. Multi-platform bot support (Telegram, DingTalk).
-
-> This project was inspired by [rdict](https://github.com/Guanran928/rdict) — a Rust-based terminal dictionary client. Thanks to the original author for the inspiration.
-
-## Install via COPR (Fedora)
+A terminal-based dictionary client written in Go. 3 query paths in one binary:
+**offline dictionaries** → **web scraping** → **LLM analysis**.
 
 ```bash
-sudo dnf install dnf-plugins-core
-sudo dnf copr enable xieguaiwu/bl
-sudo dnf install bl
+# Look up a word (Youdao EN⇄ZH)
+bl hello
+
+# German dictionary (conjugation, declension, IPA)
+bl -g Haus
+
+# LLM translation (any language pair)
+bl --llm ging
+# → Lemma: gehen (Past tense of gehen)
+
+# Grammar analysis (v1.8)
+bl --llm --parse "Der Mann geht nach Hause."
+# → Token table, POS, dependencies, phrase tree
 ```
 
-## Quick Start
+> Inspired by [rdict](https://github.com/Guanran928/rdict) — a Rust-based terminal dictionary client.
+
+## Quick Install
 
 ```bash
-go build -o bl . && ./bl hello
+# Fedora (COPR)
+sudo dnf copr enable xieguaiwu/bl && sudo dnf install bl
+
+# Build from source
+git clone https://github.com/xieguaiwu/bl.git && cd bl && go build -o bl .
 ```
 
 ## Features
 
-- **Multiple sources**: Youdao (EN⇄ZH default), WoerterNet (German via `-g`)
-- **Three query modes**: `auto` (offline → cache → online), `offline`, `online`
-- **Offline dictionaries**: Pre-built SQLite databases with zlib compression
-- **SQLite cache**: Auto-caches results, skippable with `--no-cache`
-- **Output formats**: Markdown (default), JSON (`-j`), oneliner (`-o`)
-- **ANSI color**: Auto-detected, respects `NO_COLOR`
-- **Interactive mode**: REPL prompt with `[bl]#`
-- **Bot platforms**: Telegram bot + DingTalk webhook
-- **LLM translation**: AI-powered translation between any languages via OpenAI-compatible APIs
+### Dictionary Lookup
+- **Youdao** (EN⇄ZH default) — web scraping
+- **WoerterNet** (German via `-g`) — conjugation, declension, IPA, CEFR level
+- **Offline dictionaries** — pre-built SQLite databases, no network needed (`--offline`)
+- **Three modes**: `auto` (offline → cache → online), `offline`, `online`
+
+### LLM Translation (`--llm`)
+- AI-powered translation between **any languages** via OpenAI-compatible API
+- **Lemma extraction** (v1.8): inflected forms auto-reduce to dictionary form
+  - `ging` → lemma `gehen` (Past tense)
+  - `besser` → lemma `gut` (Comparative)
+  - `ran` → lemma `run`
+- Rich grammar info: gender, plural, comparative, superlative, pronunciation
+- **Multiple providers** with automatic fallback
+- **Config UI**: `bl -C` to manage providers and models interactively
+
+### Grammar Analysis (`--parse`, v1.8.0)
+Analyze full sentences with LLM:
+```
+bl --llm --parse "Der Mann geht nach Hause."
+
+| Token | POS  | Lemma  | Features            | Dependency |
+|-------|------|--------|---------------------|------------|
+| Der   | DET  | der    | Masc, Sg, Nom       | det        |
+| Mann  | NOUN | Mann   | Masc, Sg, Nom       | nsubj      |
+| geht  | VERB | gehen  | Ind, Pres, 3rd, Sg  | root       |
+| nach  | ADP  | nach   | —                   | case       |
+| Hause | NOUN | Haus   | Neut, Sg, Dat       | obl        |
+```
+- Token-level POS tagging + dependency parsing
+- Phrase structure and clause analysis
+- Language-specific: German V2/case, French agreement/clitics, English tense/aspect
+
+### Output & UX
+- **Formats**: Markdown (default), JSON (`-j`), oneliner (`-o`)
+- **ANSI color** (auto-detected, respects `NO_COLOR`)
+- **Interactive REPL**: `bl` (no args) → `[bl]#` prompt
+- **Pipe mode**: `echo "world" | bl`
+
+### Bot Support
+- Telegram bot (`./cmd/telegram/`)
+- DingTalk webhook (`./cmd/dingtalk/`)
+
+### Cache & Storage
+- **SQLite query cache** in `~/.cache/bl/cache.db` (WAL mode)
+- **Cache management**: `bl --clear-cache`
+- **Offline dictionaries** in `~/.config/bl/dict/`
 
 ## LLM Translation (`--llm`)
 
