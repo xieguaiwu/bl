@@ -101,12 +101,16 @@ func (c *Cache) Close() error
 func (c *Cache) Get(text string) (string, error)
 func (c *Cache) Set(text string, jsonData string) error
 func (c *Cache) Delete(text string) error
+func (c *Cache) Clear() (int64, error)
+func (c *Cache) Stats() (entries int, size int64, err error)
 ```
 
 **Contract:**
 
 - `Get(text)`: Returns `("", nil)` on cache miss — **not** an error. Errors are reserved for I/O/database failures.
 - `Set(text, jsonData)`: Upserts by primary key (`INSERT OR REPLACE`). The `jsonData` parameter must be valid JSON (the caller is responsible for marshaling).
+- `Clear()`: Deletes all cache entries and runs VACUUM to reclaim disk space. Returns the number of deleted rows.
+- `Stats()`: Returns the number of cached entries and the database file size in bytes (0 if the file path is unknown).
 - The cache stores raw strings to avoid circular imports with `internal/dict`. The caller (`Rdict`) handles JSON marshaling/unmarshaling.
 - `modernc.org/sqlite` implements `database/sql` interface. Connection uses WAL journal mode.
 
@@ -238,6 +242,7 @@ This is an approximation. Some German verbs match the noun suffix pattern (and v
 | `--update-dict` | bool | `false` | Download offline dictionaries |
 | `--dict-status` | bool | `false` | Show offline dictionary info |
 | `--config-ui` / `-C` | bool | `false` | Open interactive LLM configuration UI |
+| `--clear-cache` | bool | `false` | Clear all cached query results |
 | positional | string[] | (empty) | Word(s) to translate |
 
 ### 4.2 Config File
@@ -511,6 +516,7 @@ Note: `zh` is empty for English source (per prompt rule 7). For German source, `
 - **Toggle LLM** (`e`): enable/disable LLM translation
 - **Language settings** (`t`/`s`): change target and source languages
 - **Provider management** (`p`/`a`/`d`): edit, add, or delete providers
+- **Clear cache** (`c`): show cache size and entry count, clear on confirmation
 - **Save** (`q`) or **exit without saving** (`x`)
 
 All changes are written to `~/.config/bl/config.json` via `config.Save()`.

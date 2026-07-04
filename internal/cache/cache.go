@@ -86,3 +86,40 @@ func (c *Cache) Set(text string, jsonData string) error {
 	)
 	return err
 }
+
+// Clear removes all entries from the cache.
+func (c *Cache) Clear() (int64, error) {
+	if !c.enabled {
+		return 0, nil
+	}
+	res, err := c.db.Exec(fmt.Sprintf("DELETE FROM %s", cacheTable))
+	if err != nil {
+		return 0, fmt.Errorf("cache clear: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	// VACUUM to reclaim disk space
+	_, _ = c.db.Exec("VACUUM")
+	return n, nil
+}
+
+// Stats returns the number of cached entries and the database file size in bytes.
+// File size is 0 if the db path is unknown or stat fails.
+func (c *Cache) Stats() (entries int, size int64, err error) {
+	if !c.enabled {
+		return 0, 0, nil
+	}
+	row := c.db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", cacheTable))
+	if err := row.Scan(&entries); err != nil {
+		return 0, 0, fmt.Errorf("cache count: %w", err)
+	}
+	// Try to get file size from the database connection
+	var dbPath string
+	c.db.QueryRow("PRAGMA database_list").Scan(new(string), new(string), &dbPath)
+	if dbPath != "" {
+		fi, err := os.Stat(dbPath)
+		if err == nil {
+			size = fi.Size()
+		}
+	}
+	return entries, size, nil
+}

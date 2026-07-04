@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"bl/internal/cache"
 	"bl/internal/config"
 	"bl/internal/dict"
 	"bl/internal/render"
@@ -33,6 +34,7 @@ type runConfig struct {
 	genConfig  bool
 	modeFlag   string // "auto", "offline", "online" — sets config and exits
 	configUI   bool   // interactive LLM config UI
+	clearCache bool   // clear query cache
 
 	// LLM translation flags
 	llm          bool
@@ -62,6 +64,7 @@ func parseFlags() runConfig {
 	flag.StringVar(&cfg.modeFlag, "mode", "", "set default mode (auto/offline/online) and save to config")
 	flag.BoolVar(&cfg.configUI, "config-ui", false, "open interactive LLM configuration UI")
 	flag.BoolVar(&cfg.configUI, "C", false, "shorthand for --config-ui")
+	flag.BoolVar(&cfg.clearCache, "clear-cache", false, "clear all cached query results")
 	// LLM flags
 	flag.BoolVar(&cfg.llm, "llm", false, "use LLM-based translation (requires API key in config or env)")
 	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
@@ -78,6 +81,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  Use --mode online   to permanently switch to online mode\n")
 		fmt.Fprintf(os.Stderr, "  Use --mode auto     to restore default (try offline, then online)\n")
 		fmt.Fprintf(os.Stderr, "  Use --config-ui (-C) to interactively configure LLM providers/models\n")
+		fmt.Fprintf(os.Stderr, "  Use --clear-cache   to delete all cached query results and free disk space\n")
 		fmt.Fprintf(os.Stderr, "\nLLM Translation (grammar: gender/plural/comparative for inflected languages):\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello                          Default provider+model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider openrouter hello       Named provider\n")
@@ -102,6 +106,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --mode offline           set offline as default\n")
 		fmt.Fprintf(os.Stderr, "  bl --update-dict            download offline dictionaries\n")
 		fmt.Fprintf(os.Stderr, "  bl --dict-status            show offline + LLM config status\n")
+		fmt.Fprintf(os.Stderr, "  bl --clear-cache            clear all cached query results\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello              LLM translation (default provider)\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 konnichiwa   LLM to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang English Haus           German noun → English\n")
@@ -109,6 +114,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang French Raisonnement          French 'reasoning'\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --from-lang German Handy                German 'mobile phone'\n")
 		fmt.Fprintf(os.Stderr, "  bl --config-ui                  interactive LLM config setup\n")
+		fmt.Fprintf(os.Stderr, "  bl --clear-cache                clear all cached query results\n")
 	}
 	flag.Parse()
 
@@ -156,9 +162,16 @@ func main() {
 		return
 	}
 
+	// --clear-cache: clear all cached query results
+	if rc.clearCache {
+		clearCacheCmd()
+		return
+	}
+
 	// --config-ui: open interactive LLM configuration
 	if rc.configUI {
-		if err := config.InteractiveConfig(cfg); err != nil {
+		cPath := cachePath(rc.noCache)
+		if err := config.InteractiveConfigWithCache(cfg, cPath); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
@@ -715,6 +728,47 @@ func dictStatusCmd(cfg *config.Config) {
 	} else {
 		fmt.Printf("\n.blrc: not found (place in current dir for project-specific LLM config)\n")
 	}
+}
+
+func clearCacheCmd() {
+	dbPath := cachePath(false)
+	if dbPath == "" {
+		fmt.Println("Cache is disabled (no cache directory available).")
+		return
+	}
+
+	// Check if cache file exists
+	fi, err := os.Stat(dbPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("Cache is already empty (no cache file found).")
+			return
+		}
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	oldSize := fi.Size()
+	oldHuman := fmt.Sprintf("%.1f KB", float64(oldSize)/1024)
+	if oldSize >= 1024*1024 {
+		oldHuman = fmt.Sprintf("%.1f MB", float64(oldSize)/(1024*1024))
+	}
+
+	// Open the cache and clear it
+	c, err := cache.New(dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: open cache: %v\n", err)
+		os.Exit(1)
+	}
+	defer c.Close()
+
+	count, err := c.Clear()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: clear cache: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Cache cleared: %d entries removed, %s freed\n", count, oldHuman)
 }
 
 func downloadFile(dest, url string) error {

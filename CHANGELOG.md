@@ -15,8 +15,13 @@
   - Toggle LLM translation on/off
   - Change target/source language
   - Add, edit, or delete providers
+  - Clear query cache from TUI (`[c]` key)
   - Changes saved to `~/.config/bl/config.json` on exit
   - Pure standard-library TUI — no external dependencies
+- **Cache management**:
+  - `bl --clear-cache`: clear all cached query results with size summary
+  - Cache UI in config TUI: shows entry count and size, prompts before clearing
+  - New `cache.Clear()` + `cache.Stats()` methods for programmatic access
 
 ## [v1.6.4] - 2026-06-25
 

@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"bl/internal/cache"
 )
 
 // ─── Main UI ──────────────────────────────────────────────────────
@@ -14,6 +16,12 @@ import (
 // view and modify LLM provider/model configuration.
 // Changes are saved to ~/.config/bl/config.json on exit.
 func InteractiveConfig(cfg *Config) error {
+	return InteractiveConfigWithCache(cfg, "")
+}
+
+// InteractiveConfigWithCache is like InteractiveConfig but also shows
+// and manages the query cache (cacheDB path).
+func InteractiveConfigWithCache(cfg *Config, cacheDB string) error {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	// Quick validation: ensure at least one provider exists
@@ -35,6 +43,9 @@ func InteractiveConfig(cfg *Config) error {
 
 	for {
 		printConfigScreen(cfg)
+
+		// Show cache status at bottom
+		printCacheStatus(cacheDB)
 
 		fmt.Print("\n  > ")
 		if !scanner.Scan() {
@@ -81,6 +92,9 @@ func InteractiveConfig(cfg *Config) error {
 
 		case "d":
 			deleteProvider(cfg, scanner)
+
+		case "c":
+			clearCacheFromUI(scanner, cacheDB)
 
 		default:
 			if idx, err := strconv.Atoi(input); err == nil && idx >= 1 && idx <= len(cfg.LLM.Providers) {
@@ -177,7 +191,8 @@ func printConfigScreen(cfg *Config) {
 	fmt.Println("    [e]    Toggle LLM on/off          [t] Target language")
 	fmt.Println("    [s]    Source language             [p] Edit provider")
 	fmt.Println("    [a]    Add provider                [d] Delete provider")
-	fmt.Println("    [q]    Save and exit               [x] Exit without saving")
+	fmt.Println("    [c]    Clear query cache            [q] Save and exit")
+	fmt.Println("    [x]    Exit without saving")
 }
 
 // ─── Sub-menus ────────────────────────────────────────────────────
@@ -402,4 +417,96 @@ func maskKey(key string) string {
 		return strings.Repeat("*", len(key))
 	}
 	return key[:4] + "****" + key[len(key)-4:]
+}
+
+// ─── Cache Management ────────────────────────────────────────────
+
+func printCacheStatus(cacheDB string) {
+	if cacheDB == "" {
+		return
+	}
+	fi, err := os.Stat(cacheDB)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("  Cache:        (empty, no cache file)")
+		} else {
+			fmt.Println("  Cache:        (unavailable)")
+		}
+		return
+	}
+	size := fi.Size()
+	human := fmt.Sprintf("%.1f KB", float64(size)/1024)
+	if size >= 1024*1024 {
+		human = fmt.Sprintf("%.1f MB", float64(size)/(1024*1024))
+	}
+	// Try to count entries
+	c, err := cache.New(cacheDB)
+	if err != nil {
+		fmt.Printf("  Cache:        %s\n", human)
+		return
+	}
+	defer c.Close()
+	entries, _, err := c.Stats()
+	if err != nil {
+		fmt.Printf("  Cache:        %s\n", human)
+		return
+	}
+	fmt.Printf("  Cache:        %s (%d entries)\n", human, entries)
+}
+
+func clearCacheFromUI(scanner *bufio.Scanner, cacheDB string) {
+	if cacheDB == "" {
+		fmt.Println("\n  Cache is disabled.")
+		pressEnter(scanner)
+		return
+	}
+
+	// Check current size
+	fi, err := os.Stat(cacheDB)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("\n  Cache is already empty.")
+			pressEnter(scanner)
+			return
+		}
+		fmt.Printf("\n  Cache error: %v\n", err)
+		pressEnter(scanner)
+		return
+	}
+
+	oldSize := fi.Size()
+	human := fmt.Sprintf("%.1f KB", float64(oldSize)/1024)
+	if oldSize >= 1024*1024 {
+		human = fmt.Sprintf("%.1f MB", float64(oldSize)/(1024*1024))
+	}
+
+	fmt.Printf("\n  Current cache size: %s\n", human)
+	fmt.Print("  Clear all cached queries? (y/N): ")
+	if !scanner.Scan() {
+		return
+	}
+	confirm := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	if confirm != "y" && confirm != "yes" {
+		fmt.Println("  Cancelled.")
+		pressEnter(scanner)
+		return
+	}
+
+	c, err := cache.New(cacheDB)
+	if err != nil {
+		fmt.Printf("  Error opening cache: %v\n", err)
+		pressEnter(scanner)
+		return
+	}
+	defer c.Close()
+
+	count, err := c.Clear()
+	if err != nil {
+		fmt.Printf("  Error clearing cache: %v\n", err)
+		pressEnter(scanner)
+		return
+	}
+
+	fmt.Printf("  ✓ Cache cleared: %d entries removed, %s freed\n", count, human)
+	pressEnter(scanner)
 }

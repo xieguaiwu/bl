@@ -120,6 +120,19 @@ From the TUI you can:
 
 The UI reads from and writes to `~/.config/bl/config.json`. Changes persist across sessions.
 
+### Cache Management (v1.7+)
+
+Clear all cached query results with `bl --clear-cache`:
+
+```bash
+bl --clear-cache
+# ✓ Cache cleared: 42 entries removed, 256.0 KB freed
+```
+
+You can also clear the cache from inside the interactive config UI (`bl -C`) by pressing `[c]`.
+The cache is stored at `~/.cache/bl/cache.db` (XDG-compliant). Clearing it does not affect
+offline dictionaries or any settings.
+
 ## User Preferences (from MEMORY.md)
 
 - Examples: exactly 5, vivid concrete scenes with actions/imagery
