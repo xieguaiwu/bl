@@ -8,3 +8,8 @@ improvement-loop.md
 copr_packaging.md
 .pi-subagents/
 promotion/
+
+# Dependencies
+node_modules/
+playwright-data/
+screenshots/
