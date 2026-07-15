@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.8.0. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.8.1. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -242,6 +242,7 @@ offline dictionaries or any settings.
 | v1.7.0 | Interactive LLM config UI (--config-ui / -C) |
 | v1.7.1 | Cache management (--clear-cache), lemma extraction |
 | v1.8.0 | Grammar analysis (--parse), morphological lemma/ inflection |
+| v1.8.1 | Interactive mode: arrow keys, Ctrl+A/E, Home/End support |
 
 ## Common Tasks
 

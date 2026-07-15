@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.8.1] - 2026-07-04
+
+### Fixed
+
+- **Interactive mode now supports arrow keys, Ctrl+A/E, Home/End**: the
+  `interactiveMode` function was rewritten to use a raw-terminal ReadLine
+  (adapted from the Essen project) instead of `bufio.Scanner`. Users can now
+  edit input freely with proper cursor movement.
+  - Left/Right arrows, Home (Ctrl+A), End (Ctrl+E)
+  - Backspace, Delete (Ctrl+D), Ctrl+U to clear line
+  - Ctrl+C to abort
+  - Full UTF-8 / CJK character support
+  - Falls back to `bufio.Scanner` when stdin is not a TTY
+  - New package: `internal/tui/input.go` with `ReadLine()`
+
 ## [v1.8.0] - 2026-07-04
 
 ### Added
@@ -195,6 +210,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.8.1]: https://github.com/xieguaiwu/bl/compare/v1.8.0...v1.8.1
 [v1.8.0]: https://github.com/xieguaiwu/bl/compare/v1.7.1...v1.8.0
 [v1.7.1]: https://github.com/xieguaiwu/bl/compare/v1.7.0...v1.7.1
 [v1.7.0]: https://github.com/xieguaiwu/bl/compare/v1.6.4...v1.7.0

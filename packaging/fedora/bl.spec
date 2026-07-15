@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           bl
-Version:        1.8.0
+Version:        1.8.1
 Release:        1%{?dist}
 Summary:        Terminal dictionary client with LLM translation support
 
@@ -41,6 +41,10 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 %{_bindir}/bl
 
 %changelog
+* Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.8.1-1
+- Fix interactive mode: arrow keys, Ctrl+A/E, Home/End now work
+- Replace bufio.Scanner with raw-terminal ReadLine (internal/tui/input.go)
+
 * Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.8.0-1
 - Add --parse flag: LLM-based grammatical structure analysis
 - Add lemma extraction: LLM identifies base form of inflected words

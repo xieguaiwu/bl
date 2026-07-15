@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"flag"
@@ -17,6 +16,7 @@ import (
 	"bl/internal/config"
 	"bl/internal/dict"
 	"bl/internal/render"
+	"bl/internal/tui"
 )
 
 var userAgent = "bl/" + "0.2.0"
@@ -1106,18 +1106,19 @@ func interactiveMode(client *dict.Rdict, fmt_ dict.Format, sourceName string) {
 		prompt = "\033[32m[bl]\033[0m# "
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print(prompt)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	for {
+		line, err := tui.ReadLine(prompt)
+		if err != nil {
+			// Ctrl+C, EOF, or pipe end — exit gracefully.
+			if err.Error() != "interrupted" {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			}
+			return
+		}
+		line = strings.TrimSpace(line)
 		if line == "" {
-			fmt.Print(prompt)
 			continue
 		}
 		output(client, line, fmt_)
-		fmt.Print(prompt)
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	}
 }
