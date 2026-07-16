@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.8.1. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.8.2. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -143,6 +143,40 @@ Output includes:
 
 Supported languages: German, French, English, and any language the LLM understands.
 
+### Translation Picker (v1.8.2+)
+
+`bl --llm --pick <word>` provides an interactive workflow for choosing the right
+candidate translation. After the initial LLM translation, candidates are displayed
+with numbers. The user selects which ones to reverse-check:
+
+```bash
+bl --llm --pick --to-lang English 你好
+```
+
+```
+# Translation  hello / hi
+
+──────────────────────────────────────────────────
+  Select candidates to reverse-check
+  [1] hello
+  [2] hi
+  (0 = skip; examples: 1,3  /  1-3  /  2)
+  > 1,2
+
+──────────────────────────────────────────────────
+  Reverse: hello → 中文
+  # Translation  你好 / 嗨
+  ...examples...
+
+──────────────────────────────────────────────────
+  Reverse: hi → 中文
+  # Translation  嗨 / 你好
+  ...examples...
+```
+
+This helps confirm that the selected word carries the exact nuance you need.
+The `--to-lang` flag is recommended to specify the target language explicitly.
+
 #### Open-Source Grammar Parser Reference
 
 For power users who want faster/reproducible local parsing, these open-source tools
@@ -243,6 +277,7 @@ offline dictionaries or any settings.
 | v1.7.1 | Cache management (--clear-cache), lemma extraction |
 | v1.8.0 | Grammar analysis (--parse), morphological lemma/ inflection |
 | v1.8.1 | Interactive mode: arrow keys, Ctrl+A/E, Home/End support |
+| v1.8.2 | --pick: translation candidate picker with reverse-check |
 
 ## Common Tasks
 

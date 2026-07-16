@@ -5,7 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
-## [v1.8.1] - 2026-07-04
+## [v1.8.2] - 2026-07-04
+
+### Added
+
+- **Interactive translation picker** (`bl --llm --pick <word>`): after a forward
+  LLM translation, shows numbered candidate list and lets users select which
+  words to reverse-check. Each selected word is then translated back to Chinese
+  so users can compare full meanings:
+  ```
+  bl --llm --pick --to-lang English 你好
+  # Shows: [1] hello [2] hi
+  # Select: 1,2
+  # Shows reverse: hello → 中文 (你好/嗨) and hi → 中文 (嗨/你好)
+  ```
+  - Supports multiple selections: `1,3`, `1-3`, `1 3`, or any combination
+  - New: `pickQuery()`, `parseSelection()`, `parseInt()`
+  - Reverse queries use swapped source/target languages, cached normally
 
 ### Fixed
 
@@ -210,6 +226,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.8.2]: https://github.com/xieguaiwu/bl/compare/v1.8.1...v1.8.2
 [v1.8.1]: https://github.com/xieguaiwu/bl/compare/v1.8.0...v1.8.1
 [v1.8.0]: https://github.com/xieguaiwu/bl/compare/v1.7.1...v1.8.0
 [v1.7.1]: https://github.com/xieguaiwu/bl/compare/v1.7.0...v1.7.1

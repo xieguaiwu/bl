@@ -516,6 +516,7 @@ Note: `zh` is empty for English source (per prompt rule 7). For German source, `
 | `--to-lang` | Target language |
 | `--from-lang` | Source language (auto-detect if empty) |
 | `--parse` | Grammar analysis: parse sentence structure (requires --llm) |
+| `--pick` | Interactive candidate picker with reverse-check (requires --llm) |
 
 ### 6.10 Grammar Analysis (`--parse`)
 
@@ -531,7 +532,24 @@ Implementation in `main.go`:
 
 The `--parse` flag requires `--llm` and cannot be combined with traditional sources.
 
-### 6.11 Interactive Config UI (`internal/config/tui.go`)
+### 6.11 Translation Picker (`--pick`)
+
+`bl --llm --pick <word>` enables an interactive workflow for choosing the right
+candidate translation:
+1. **Forward translation**: standard LLM translation to get candidate words
+2. **Picker UI**: numbered candidate list, user selects via `tui.ReadLine`
+3. **Reverse check**: each selected candidate is translated back to Chinese
+
+Selection syntax: `1,3`, `1-3`, `1 3`, or any combination. `0` or empty to skip.
+
+The reverse translation swaps source/target languages and uses the cache normally.
+
+Implementation in `main.go`:
+- `pickQuery()` — forward + picker + reverse loop
+- `parseSelection()` — parses `1,3` / `1-3` / `1 3` into `[]int`
+- `parseInt()` — fast ASCII-only integer parser
+
+### 6.12 Interactive Config UI (`internal/config/tui.go`)
 
 `bl --config-ui` (or `bl -C`) launches an interactive terminal UI for editing LLM configuration:
 

@@ -37,6 +37,7 @@ type runConfig struct {
 	configUI   bool   // interactive LLM config UI
 	clearCache bool   // clear query cache
 	doParse    bool   // grammar analysis mode
+	doPick     bool   // interactive translation picker
 
 	// LLM translation flags
 	llm          bool
@@ -68,6 +69,7 @@ func parseFlags() runConfig {
 	flag.BoolVar(&cfg.configUI, "C", false, "shorthand for --config-ui")
 	flag.BoolVar(&cfg.clearCache, "clear-cache", false, "clear all cached query results")
 	flag.BoolVar(&cfg.doParse, "parse", false, "grammar analysis: parse sentence structure (requires --llm)")
+	flag.BoolVar(&cfg.doPick, "pick", false, "interactive translation picker: select candidates and reverse-check (requires --llm)")
 	// LLM flags
 	flag.BoolVar(&cfg.llm, "llm", false, "use LLM-based translation (requires API key in config or env)")
 	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
@@ -86,6 +88,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  Use --config-ui (-C) to interactively configure LLM providers/models\n")
 		fmt.Fprintf(os.Stderr, "  Use --clear-cache   to delete all cached query results and free disk space\n")
 		fmt.Fprintf(os.Stderr, "  Use --llm --parse <sentence>  to analyze grammatical structure\n")
+		fmt.Fprintf(os.Stderr, "  Use --llm --pick <word>     to pick candidates and reverse-check\n")
 		fmt.Fprintf(os.Stderr, "\nLLM Translation (grammar: gender/plural/comparative for inflected languages):\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello                          Default provider+model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider openrouter hello       Named provider\n")
@@ -113,6 +116,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --clear-cache            clear all cached query results\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello              LLM translation (default provider)\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --parse sentence   grammar analysis (parse sentence structure)\n")
+		fmt.Fprintf(os.Stderr, "  bl --llm --pick word       pick candidates and reverse-check meanings\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 konnichiwa   LLM to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang English Haus           German noun → English\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-model google/gemma-4-31b-it:free hello   Pick model\n")
@@ -324,9 +328,12 @@ func main() {
 	outfmt := outputFmt(rc)
 
 	if useLLM {
-		if rc.doParse {
+		switch {
+		case rc.doParse:
 			grammarQuery(cfg, rc, targetLang, sourceLang)
-		} else {
+		case rc.doPick:
+			pickQuery(cfg, rc, outfmt, targetLang, sourceLang)
+		default:
 			llmQuery(cfg, rc, outfmt, targetLang, sourceLang)
 		}
 		return
@@ -597,6 +604,208 @@ func grammarQuery(cfg *config.Config, rc runConfig, targetLang, sourceLang strin
 	}
 
 	fmt.Fprintf(os.Stderr, "All %d LLM providers failed for grammar analysis.\n", len(providers))
+}
+
+// pickQuery does a forward LLM translation, shows an interactive candidate
+// picker, then reverse-translates each selected candidate back to Chinese so
+// the user can verify the full meaning of each candidate word.
+func pickQuery(cfg *config.Config, rc runConfig, outfmt dict.Format, targetLang, sourceLang string) {
+	providers := cfg.LLM.Providers
+
+	text := rc.text
+	if text == "" {
+		stat, err := os.Stdin.Stat()
+		if err == nil && (stat.Mode()&os.ModeCharDevice) == 0 {
+			input, err := io.ReadAll(os.Stdin)
+			if err == nil {
+				text = strings.TrimSpace(string(input))
+			}
+		}
+	}
+	if text == "" {
+		fmt.Fprintln(os.Stderr, "error: no text provided (usage: bl --llm --pick <word>)")
+		os.Exit(1)
+	}
+
+	cp := cachePath(rc.noCache)
+	colored := isColoredOutput()
+
+	// Resolve the provider (first attempt only, no fallback for picker queries)
+	providerName := rc.llmProvider
+	if providerName == "" {
+		providerName = cfg.LLM.Provider
+	}
+	provider := findProvider(providers, providerName)
+	if provider == nil {
+		fmt.Fprintf(os.Stderr, "error: LLM provider %q not found\n", providerName)
+		os.Exit(1)
+	}
+	model := provider.Model
+	if rc.llmModel != "" {
+		model = rc.llmModel
+	}
+	apiKey := provider.APIKey
+	if rc.llmKey != "" {
+		apiKey = rc.llmKey
+	}
+	workingProvider := *provider
+	workingProvider.Model = model
+	workingProvider.APIKey = apiKey
+
+	// ── 1. Forward translation ──
+	fmt.Fprintf(os.Stderr, "[%s / %s]\n", provider.Name, model)
+	fwdSource := dict.NewLLMSource("llm", workingProvider, targetLang, sourceLang, cfg.LLM.SystemPrompt)
+	fwdClient, err := dict.NewRdict(fwdSource, cp)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	result, err := fwdClient.GetResults(text)
+	fwdClient.Close()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return
+	}
+
+	// Display the forward translation
+	fmt.Println()
+	indented := indent(render.RenderTranslation(&result.Data, outfmt, colored), "  ")
+	fmt.Println(indented)
+
+	// Extract candidates
+	if result.Data.Type != dict.TypeTranslation || result.Data.Translation == nil {
+		return
+	}
+	candidates := result.Data.Translation.Translations
+	if len(candidates) == 0 {
+		return
+	}
+
+	// ── 2. Interactive picker ──
+	fmt.Println(strings.Repeat("─", 50))
+	fmt.Println("  Select candidates to reverse-check")
+	for i, c := range candidates {
+		fmt.Printf("  [%d] %s\n", i+1, c)
+	}
+	fmt.Println("  (0 = skip; examples: 1,3  /  1-3  /  2)")
+
+	selection, err := tui.ReadLine("  > ")
+	if err != nil {
+		return
+	}
+	selection = strings.TrimSpace(selection)
+	if selection == "" || selection == "0" {
+		return
+	}
+
+	selected := parseSelection(selection, len(candidates))
+	if len(selected) == 0 {
+		return
+	}
+
+	// ── 3. Reverse translations ──
+	// Reverse source = forward's target language (language of the candidates)
+	revTarget := "中文"
+	revSource := targetLang
+	// If targetLang is already Chinese, default to English as the candidate language
+	if revSource == "" || strings.EqualFold(revSource, "中文") || strings.EqualFold(revSource, "chinese") || strings.EqualFold(revSource, "zh") {
+		revSource = "English"
+	}
+
+	fmt.Println()
+	for idx, sel := range selected {
+		if sel < 1 || sel > len(candidates) {
+			continue
+		}
+		candidate := candidates[sel-1]
+
+		// Print separator with label
+		label := fmt.Sprintf("  Reverse: %s → %s", candidate, revTarget)
+		fmt.Println(strings.Repeat("─", 50))
+		if colored {
+			fmt.Printf("\033[36m%s\033[0m\n", label)
+		} else {
+			fmt.Println(label)
+		}
+
+		revLLMSource := dict.NewLLMSource("llm", workingProvider, revTarget, revSource, cfg.LLM.SystemPrompt)
+		revClient, err := dict.NewRdict(revLLMSource, cp)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  error: %v\n", err)
+			continue
+		}
+		revResult, err := revClient.GetResults(candidate)
+		revClient.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  error: %v\n", err)
+			continue
+		}
+
+		rendered := render.RenderTranslation(&revResult.Data, outfmt, colored)
+		fmt.Println(indent(rendered, "  "))
+
+		// Add a small pause between items (only in TTY)
+		if idx < len(selected)-1 {
+			fmt.Println()
+		}
+	}
+}
+
+// parseSelection parses user input like "1,3", "1-3", "1 3" into []int{1,3} or {1,2,3}.
+func parseSelection(input string, max int) []int {
+	seen := make(map[int]bool)
+	var result []int
+
+	// Split by comma first
+	parts := strings.Split(input, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		// Check for range: "1-3" or "1-3 "
+		if strings.Contains(part, "-") {
+			rangeParts := strings.SplitN(part, "-", 2)
+			if len(rangeParts) == 2 {
+				start := parseInt(strings.TrimSpace(rangeParts[0]))
+				end := parseInt(strings.TrimSpace(rangeParts[1]))
+				if start > 0 && end >= start && end <= max {
+					for i := start; i <= end; i++ {
+						if !seen[i] {
+							seen[i] = true
+							result = append(result, i)
+						}
+					}
+				}
+			}
+			continue
+		}
+
+		// Try to parse as individual number or space-separated numbers
+		subParts := strings.Fields(part)
+		for _, sp := range subParts {
+			n := parseInt(sp)
+			if n > 0 && n <= max && !seen[n] {
+				seen[n] = true
+				result = append(result, n)
+			}
+		}
+	}
+
+	return result
+}
+
+func parseInt(s string) int {
+	n := 0
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			n = n*10 + int(r-'0')
+		} else {
+			return 0
+		}
+	}
+	return n
 }
 
 // sendRawLLMRequest sends a prompt to an OpenAI-compatible API and returns the raw text response.
