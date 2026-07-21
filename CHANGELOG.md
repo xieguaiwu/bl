@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.8.3] - 2026-07-16
+
+### Added
+
+- **Chinese idiom dictionary** (`bl --cn <concept/idiom>`): LLM-powered Chinese
+  dictionary with three modes:
+  - **概念查成语**: input a concept (e.g. "形容非常高兴"), get 5-8 matching idioms
+    with pinyin, definition, and usage tips
+  - **成语查释义**: input an idiom (e.g. "画蛇添足"), get full breakdown with
+    origin, synonyms/antonyms, examples, and English equivalent
+  - **生僻字查解释**: input a rare character (e.g. "叕"), get pinyin, meaning,
+    common compounds, and cultural notes
+  - Uses `sendChatRequest()` — new generic chat API helper with customizable
+    system prompt and user message
+
 ## [v1.8.2] - 2026-07-04
 
 ### Added
@@ -226,6 +241,7 @@
 - MIT 许可证，COPR RPM 打包配置
 - 中英文双 README，带语言切换器
 
+[v1.8.3]: https://github.com/xieguaiwu/bl/compare/v1.8.2...v1.8.3
 [v1.8.2]: https://github.com/xieguaiwu/bl/compare/v1.8.1...v1.8.2
 [v1.8.1]: https://github.com/xieguaiwu/bl/compare/v1.8.0...v1.8.1
 [v1.8.0]: https://github.com/xieguaiwu/bl/compare/v1.7.1...v1.8.0

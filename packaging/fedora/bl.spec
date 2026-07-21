@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
 Name:           bl
-Version:        1.8.2
+Version:        1.8.3
 Release:        1%{?dist}
 Summary:        Terminal dictionary client with LLM translation support
 
@@ -41,6 +41,10 @@ install -Dm644 config.example.json %{buildroot}%{_defaultdocdir}/%{name}/config.
 %{_bindir}/bl
 
 %changelog
+* Thu Jul 16 2026 xgw <xieguaiwu@163.com> - 1.8.3-1
+- Add --cn: Chinese idiom dictionary (concept→idiom, idiom→explanation)
+- Add sendChatRequest() generic chat API helper
+
 * Sat Jul 04 2026 xgw <xieguaiwu@163.com> - 1.8.2-1
 - Add --pick: interactive translation candidate picker with reverse-check
 

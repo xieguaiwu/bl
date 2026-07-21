@@ -517,6 +517,7 @@ Note: `zh` is empty for English source (per prompt rule 7). For German source, `
 | `--from-lang` | Source language (auto-detect if empty) |
 | `--parse` | Grammar analysis: parse sentence structure (requires --llm) |
 | `--pick` | Interactive candidate picker with reverse-check (requires --llm) |
+| `--cn` | Chinese idiom dictionary (concept→idiom, idiom→explanation) |
 
 ### 6.10 Grammar Analysis (`--parse`)
 
@@ -549,7 +550,22 @@ Implementation in `main.go`:
 - `parseSelection()` — parses `1,3` / `1-3` / `1 3` into `[]int`
 - `parseInt()` — fast ASCII-only integer parser
 
-### 6.12 Interactive Config UI (`internal/config/tui.go`)
+### 6.12 Chinese Idiom Dictionary (`--cn`)
+
+`bl --cn <query>` uses the LLM as a Chinese dictionary with three automatic modes:
+1. **Concept→Idioms**: input a description, get matching idioms with pinyin and usage
+2. **Idiom→Explanation**: input an idiom, get definition, origin, synonyms, examples
+3. **Rare character**: input an obscure character, get pinyin, meaning, compounds
+
+Implementation:
+- `chengyuQuery()` in `main.go` — resolves provider, sends chat request
+- `chengyuPrompt` — Chinese system prompt covering all three modes
+- `sendChatRequest()` — generic helper for system + user message API calls
+  (unlike `sendRawLLMRequest` which has a hardcoded user message)
+
+The `--cn` flag automatically enables LLM mode (no need for `--llm`).
+
+### 6.13 Interactive Config UI (`internal/config/tui.go`)
 
 `bl --config-ui` (or `bl -C`) launches an interactive terminal UI for editing LLM configuration:
 

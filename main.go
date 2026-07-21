@@ -38,6 +38,7 @@ type runConfig struct {
 	clearCache bool   // clear query cache
 	doParse    bool   // grammar analysis mode
 	doPick     bool   // interactive translation picker
+	doChengyu  bool   // Chinese idiom dictionary
 
 	// LLM translation flags
 	llm          bool
@@ -70,6 +71,7 @@ func parseFlags() runConfig {
 	flag.BoolVar(&cfg.clearCache, "clear-cache", false, "clear all cached query results")
 	flag.BoolVar(&cfg.doParse, "parse", false, "grammar analysis: parse sentence structure (requires --llm)")
 	flag.BoolVar(&cfg.doPick, "pick", false, "interactive translation picker: select candidates and reverse-check (requires --llm)")
+	flag.BoolVar(&cfg.doChengyu, "cn", false, "Chinese idiom dictionary: input a concept or an idiom, get explanations")
 	// LLM flags
 	flag.BoolVar(&cfg.llm, "llm", false, "use LLM-based translation (requires API key in config or env)")
 	flag.StringVar(&cfg.llmProvider, "llm-provider", "", "LLM provider name (nemotron, bigpickle, opencode, custom)")
@@ -89,6 +91,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  Use --clear-cache   to delete all cached query results and free disk space\n")
 		fmt.Fprintf(os.Stderr, "  Use --llm --parse <sentence>  to analyze grammatical structure\n")
 		fmt.Fprintf(os.Stderr, "  Use --llm --pick <word>     to pick candidates and reverse-check\n")
+		fmt.Fprintf(os.Stderr, "  Use --cn <concept/idiom>   Chinese idiom dictionary\n")
 		fmt.Fprintf(os.Stderr, "\nLLM Translation (grammar: gender/plural/comparative for inflected languages):\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm hello                          Default provider+model\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-provider openrouter hello       Named provider\n")
@@ -117,6 +120,7 @@ func parseFlags() runConfig {
 		fmt.Fprintf(os.Stderr, "  bl --llm hello              LLM translation (default provider)\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --parse sentence   grammar analysis (parse sentence structure)\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --pick word       pick candidates and reverse-check meanings\n")
+		fmt.Fprintf(os.Stderr, "  bl --cn <concept/idiom>    Chinese idiom dictionary\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang 日本語 konnichiwa   LLM to Japanese\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --to-lang English Haus           German noun → English\n")
 		fmt.Fprintf(os.Stderr, "  bl --llm --llm-model google/gemma-4-31b-it:free hello   Pick model\n")
@@ -240,7 +244,7 @@ func main() {
 	// If a traditional source was explicitly requested (-g, -s), don't use LLM.
 	// Explicit --llm flag always overrides.
 	useLLM := false
-	if rc.llm {
+	if rc.llm || rc.doParse || rc.doPick || rc.doChengyu {
 		useLLM = true
 	} else if rc.source != "youdao" {
 		useLLM = false
@@ -333,6 +337,8 @@ func main() {
 			grammarQuery(cfg, rc, targetLang, sourceLang)
 		case rc.doPick:
 			pickQuery(cfg, rc, outfmt, targetLang, sourceLang)
+		case rc.doChengyu:
+			chengyuQuery(cfg, rc)
 		default:
 			llmQuery(cfg, rc, outfmt, targetLang, sourceLang)
 		}
@@ -509,6 +515,159 @@ IMPORTANT: Do not include the original sentence in your response. Start directly
 Sentence: %s
 
 Output in clean markdown with appropriate headings and formatting.`
+
+// chengyuPrompt is the system prompt for Chinese idiom dictionary queries.
+// It covers both modes: concept→idiom and idiom→explanation.
+const chengyuPrompt = `你是一个专业的汉语词典助手。根据用户的输入，自动判断属于哪种查询模式:
+
+**模式1 - 概念查成语**: 用户输入想表达的意思（如"形容非常高兴""比喻事后才采取措施"），
+你应提供 5-8 个最贴切的成语/习语，每个包含:
+- 成语本身
+- 拼音
+- 释义
+- 用法提示
+
+**模式2 - 成语查释义**: 用户输入一个成语或习语（如"画蛇添足""守株待兔"），
+你应提供:
+- 拼音
+- 释义
+- 出处（原文 + 典籍来源）
+- 近义词 / 反义词
+- 用法示例（1-2个句子）
+- 英语对应表达（如有）
+
+**模式3 - 生僻字查解释**: 用户输入一个生僻字，你应提供:
+- 拼音
+- 释义
+- 常见组词
+- 典故或用法说明
+
+根据输入内容自动判断模式。输出格式使用 markdown，清晰结构化。
+
+请直接开始输出，不要加开场白。`
+
+// sendChatRequest sends a system prompt + user message to an OpenAI-compatible API
+// and returns the raw text response. Unlike sendRawLLMRequest, the user message is
+// not hardcoded — it's the actual query text.
+func sendChatRequest(baseURL, model, apiKey, systemPrompt, userMsg string, temperature float64) (string, error) {
+	if baseURL == "" || model == "" {
+		return "", fmt.Errorf("provider not fully configured (base_url or model empty)")
+	}
+	resolvedKey := apiKey
+	if strings.HasPrefix(resolvedKey, "env:") {
+		resolvedKey = os.Getenv(strings.TrimPrefix(resolvedKey, "env:"))
+	}
+	if resolvedKey == "" {
+		return "", fmt.Errorf("API key not resolved")
+	}
+
+	reqBody := map[string]interface{}{
+		"model": model,
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": userMsg},
+		},
+		"temperature": temperature,
+		"max_tokens":  4096,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	url := strings.TrimRight(baseURL, "/") + "/chat/completions"
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+resolvedKey)
+
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("LLM API error (HTTP %d): %s", resp.StatusCode, truncateStr(string(respData), 500))
+	}
+
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error,omitempty"`
+	}
+	if err := json.Unmarshal(respData, &chatResp); err != nil {
+		return "", fmt.Errorf("parse API response: %w", err)
+	}
+	if chatResp.Error != nil && chatResp.Error.Message != "" {
+		return "", fmt.Errorf("LLM API error: %s", chatResp.Error.Message)
+	}
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("LLM API returned no choices")
+	}
+
+	return chatResp.Choices[0].Message.Content, nil
+}
+
+// chengyuQuery sends a query to the LLM for Chinese idiom/concept lookup.
+func chengyuQuery(cfg *config.Config, rc runConfig) {
+	text := rc.text
+	if text == "" {
+		stat, err := os.Stdin.Stat()
+		if err == nil && (stat.Mode()&os.ModeCharDevice) == 0 {
+			input, err := io.ReadAll(os.Stdin)
+			if err == nil {
+				text = strings.TrimSpace(string(input))
+			}
+		}
+	}
+	if text == "" {
+		fmt.Fprintln(os.Stderr, "error: no text provided (usage: bl --cn <concept or idiom>)")
+		os.Exit(1)
+	}
+
+	// Resolve provider
+	providerName := rc.llmProvider
+	if providerName == "" {
+		providerName = cfg.LLM.Provider
+	}
+	provider := findProvider(cfg.LLM.Providers, providerName)
+	if provider == nil {
+		fmt.Fprintf(os.Stderr, "error: LLM provider %q not found\n", providerName)
+		os.Exit(1)
+	}
+	model := provider.Model
+	if rc.llmModel != "" {
+		model = rc.llmModel
+	}
+	apiKey := provider.APIKey
+	if rc.llmKey != "" {
+		apiKey = rc.llmKey
+	}
+
+	fmt.Fprintf(os.Stderr, "[%s / %s]\n", provider.Name, model)
+
+	resp, err := sendChatRequest(provider.BaseURL, model, apiKey, chengyuPrompt, text, 0.3)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "  error: %v\n", err)
+		return
+	}
+	fmt.Println(strings.TrimSpace(resp))
+}
 
 // grammarQuery sends a sentence to the LLM for grammatical structure analysis.
 // Unlike llmQuery, it bypasses JSON parsing and displays the raw markdown response.

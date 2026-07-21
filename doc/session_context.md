@@ -1,6 +1,6 @@
 # bl — Session Context
 
-> Current version: v1.8.2. For AI agents that need to understand, modify, or extend the project.
+> Current version: v1.8.3. For AI agents that need to understand, modify, or extend the project.
 
 ## Project Overview
 
@@ -179,6 +179,31 @@ The `--to-lang` flag is recommended to specify the target language explicitly.
 
 #### Open-Source Grammar Parser Reference
 
+### Chinese Idiom Dictionary (v1.8.3+)
+
+`bl --cn <concept/idiom>` uses the LLM as a Chinese dictionary, with three automatic modes:
+
+**Mode 1 — Concept → Idioms:** describe an idea, get matching idioms
+```bash
+bl --cn "形容非常高兴"
+# → 心花怒放、喜出望外、眉开眼笑、欣喜若狂、欢天喜地...
+```
+
+**Mode 2 — Idiom → Explanation:** enter an idiom, get full breakdown
+```bash
+bl --cn "画蛇添足"
+# → pinyin, definition, origin (战国策), synonyms/antonyms, examples, English equivalent
+```
+
+**Mode 3 — Rare Character:** enter an obscure character, get details
+```bash
+bl --cn "叕"
+# → pinyin (zhuó/yǐ), meaning, compounds, cultural notes
+```
+
+The `--cn` flag does not require `--llm` (it forces LLM mode automatically).
+Implementation: `chengyuQuery()` + `chengyuPrompt` + `sendChatRequest()` in `main.go`.
+
 For power users who want faster/reproducible local parsing, these open-source tools
 can be used alongside bl:
 
@@ -278,6 +303,7 @@ offline dictionaries or any settings.
 | v1.8.0 | Grammar analysis (--parse), morphological lemma/ inflection |
 | v1.8.1 | Interactive mode: arrow keys, Ctrl+A/E, Home/End support |
 | v1.8.2 | --pick: translation candidate picker with reverse-check |
+| v1.8.3 | --cn: Chinese idiom dictionary (concept→idiom, idiom→explanation) |
 
 ## Common Tasks
 
