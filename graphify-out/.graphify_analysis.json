@@ -1,0 +1,468 @@
+{
+  "communities": {
+    "0": [
+      "build_dict_inputentry",
+      "dict_offlinedictionary",
+      "dict_offlinedictionary_close",
+      "dict_offlinedictionary_lookup",
+      "dict_offlinedictionary_lookupexact",
+      "dict_offlinedictionary_name",
+      "dict_offlinedictionary_path",
+      "dict_offlinedictionary_stats",
+      "dict_translationdata",
+      "dict_translationdata_marshaljson",
+      "dict_translationdata_unmarshaljson",
+      "dict_youdaosource",
+      "dict_youdaosource_fetchurl",
+      "dict_youdaosource_name",
+      "dict_youdaosource_parse",
+      "internal_dict_offline",
+      "internal_dict_offline_capitalize",
+      "internal_dict_offline_compressentry",
+      "internal_dict_offline_createofflinedict",
+      "internal_dict_offline_decompressentry",
+      "internal_dict_offline_dictdir",
+      "internal_dict_offline_ensuredictdir",
+      "internal_dict_offline_go_db",
+      "internal_dict_offline_langforsource",
+      "internal_dict_offline_newofflinedict",
+      "internal_dict_types_iscjk",
+      "internal_dict_youdao",
+      "internal_dict_youdao_newyoudaosource",
+      "internal_dict_youdao_parseexamples",
+      "internal_dict_youdao_parsetochinese",
+      "internal_dict_youdao_parsetoenglish",
+      "main_openofflinedict",
+      "scripts_build_dict_main",
+      "scripts_build_dict_main_buildtranslationdata",
+      "scripts_build_dict_main_main",
+      "selection"
+    ],
+    "1": [
+      "bl_runconfig",
+      "dict_fetchedresult",
+      "dict_format",
+      "dict_rdict",
+      "dict_rdict_cachekey",
+      "dict_rdict_close",
+      "dict_rdict_fetchsourcehtml",
+      "dict_rdict_getresults",
+      "dict_translator",
+      "internal_dict_rdict",
+      "internal_dict_rdict_go_client",
+      "internal_dict_rdict_newrdict",
+      "internal_dict_rdict_newrdictwithoffline",
+      "main",
+      "main_cachepath",
+      "main_clearcachecmd",
+      "main_downloadfile",
+      "main_indent",
+      "main_interactivemode",
+      "main_isapierror",
+      "main_iscoloredoutput",
+      "main_llmdoquery",
+      "main_llmquery",
+      "main_output",
+      "main_outputfmt",
+      "main_parseflags",
+      "main_parseint",
+      "main_parseselection",
+      "main_pickquery",
+      "main_sendchatrequest",
+      "main_sendrawllmrequest",
+      "main_truncatestr",
+      "main_updatedictcmd"
+    ],
+    "2": [
+      "builder",
+      "dict_example",
+      "dict_httperror",
+      "dict_httperror_error",
+      "dict_meaning",
+      "dict_notranslationresults",
+      "dict_notranslationresults_error",
+      "dict_offlineunavailable",
+      "dict_offlineunavailable_error",
+      "dict_pronunciation",
+      "dict_tochinese",
+      "dict_toenglish",
+      "dict_translation",
+      "dict_translationtype",
+      "dict_translationtype_string",
+      "internal_dict_types",
+      "internal_render_render",
+      "internal_render_render_renderchinese",
+      "internal_render_render_renderchineseoneliner",
+      "internal_render_render_renderenglish",
+      "internal_render_render_renderenglishoneliner",
+      "internal_render_render_renderexamples",
+      "internal_render_render_rendergermanentry",
+      "internal_render_render_rendergermanoneliner",
+      "internal_render_render_renderoneliner",
+      "internal_render_render_rendertranslation",
+      "internal_render_render_rendertranslationresult"
+    ],
+    "3": [
+      "bl_localrc",
+      "bl_localrc_applyto",
+      "config_config",
+      "config_llmconfig",
+      "config_llmprovider",
+      "config_mode",
+      "internal_config_config",
+      "internal_config_config_configpath",
+      "internal_config_config_defaultconfig",
+      "internal_config_config_defaultllmconfig",
+      "internal_config_config_generateconfig",
+      "internal_config_config_isvalidmode",
+      "internal_config_config_load",
+      "internal_config_config_save",
+      "internal_config_config_validmodes",
+      "main_chengyuquery",
+      "main_dictstatuscmd",
+      "main_findprovider",
+      "main_grammarquery",
+      "main_loadlocalrc",
+      "main_main"
+    ],
+    "4": [
+      "dict_germanentry",
+      "dict_woerternetsource",
+      "dict_woerternetsource_fetchurl",
+      "dict_woerternetsource_name",
+      "dict_woerternetsource_parse",
+      "document",
+      "internal_dict_german",
+      "internal_dict_german_addenglishtranslations",
+      "internal_dict_german_containsipasymbols",
+      "internal_dict_german_extractbodymeta",
+      "internal_dict_german_extractipa",
+      "internal_dict_german_guesswordtype",
+      "internal_dict_german_isupper",
+      "internal_dict_german_newwoerternetsource",
+      "internal_dict_german_parseenglishfromvstck",
+      "internal_dict_german_parseenglishtranslations",
+      "internal_dict_german_splitenglishtranslations"
+    ],
+    "5": [
+      "file",
+      "internal_tui_input",
+      "internal_tui_input_displaywidthrunes",
+      "internal_tui_input_gettermios",
+      "internal_tui_input_istty",
+      "internal_tui_input_makeraw",
+      "internal_tui_input_readescseq",
+      "internal_tui_input_readline",
+      "internal_tui_input_readutf8",
+      "internal_tui_input_redrawline",
+      "internal_tui_input_restoretermios",
+      "internal_tui_input_runedisplaywidth",
+      "internal_tui_input_settermios",
+      "tui_escresult",
+      "tui_termios"
+    ],
+    "6": [
+      "dict_llmsource",
+      "dict_llmsource_fetchurl",
+      "dict_llmsource_name",
+      "dict_llmsource_parse",
+      "dict_llmsource_parsetranslation",
+      "dict_llmsource_resolveapikey",
+      "dict_llmsource_translate",
+      "internal_dict_llm",
+      "internal_dict_llm_buildprompt",
+      "internal_dict_llm_extractjson",
+      "internal_dict_llm_go_client",
+      "internal_dict_llm_newllmsource",
+      "internal_dict_llm_stripcodefences",
+      "internal_dict_llm_truncate"
+    ],
+    "7": [
+      "internal_config_tui",
+      "internal_config_tui_addprovider",
+      "internal_config_tui_changeprovidermodel",
+      "internal_config_tui_clearcachefromui",
+      "internal_config_tui_deleteprovider",
+      "internal_config_tui_editprovider",
+      "internal_config_tui_interactiveconfig",
+      "internal_config_tui_interactiveconfigwithcache",
+      "internal_config_tui_maskkey",
+      "internal_config_tui_pressenter",
+      "internal_config_tui_printcachestatus",
+      "internal_config_tui_printconfigscreen",
+      "internal_config_tui_promptstring",
+      "scanner"
+    ],
+    "8": [
+      "build_de_en_deenentry",
+      "scripts_build_de_en_main",
+      "scripts_build_de_en_main_downloaddict",
+      "scripts_build_de_en_main_extractdefinitions",
+      "scripts_build_de_en_main_extractgender",
+      "scripts_build_de_en_main_extractword",
+      "scripts_build_de_en_main_extractwordtype",
+      "scripts_build_de_en_main_guesswordtype",
+      "scripts_build_de_en_main_isupper",
+      "scripts_build_de_en_main_main",
+      "scripts_build_de_en_main_parsebeolingus",
+      "scripts_build_de_en_main_parseline"
+    ],
+    "9": [
+      "cmd_dingtalk_main",
+      "cmd_dingtalk_main_extractquery",
+      "cmd_dingtalk_main_main",
+      "cmd_telegram_main",
+      "cmd_telegram_main_escapehtml",
+      "cmd_telegram_main_main",
+      "dict_dictionarysource",
+      "dingtalk_dingtalkrequest",
+      "dingtalk_dingtalkresponse",
+      "dingtalk_dingtalktext",
+      "internal_dict_source",
+      "internal_dict_source_newsourcebyname"
+    ],
+    "10": [
+      "cache_cache",
+      "cache_cache_clear",
+      "cache_cache_close",
+      "cache_cache_delete",
+      "cache_cache_get",
+      "cache_cache_set",
+      "cache_cache_stats",
+      "internal_cache_cache",
+      "internal_cache_cache_go_db",
+      "internal_cache_cache_new"
+    ],
+    "11": [
+      "publish_helper",
+      "publish_helper_chromium",
+      "publish_helper_content_dir",
+      "publish_helper_data_dir",
+      "publish_helper_fs",
+      "publish_helper_main",
+      "publish_helper_path",
+      "publish_helper_platforms",
+      "publish_helper_urls"
+    ],
+    "12": [
+      "cache_management_feature",
+      "chinese_idiom_dictionary_feature",
+      "grammar_analysis_feature",
+      "llm_translation_feature",
+      "provider_fallback_feature",
+      "translation_picker_feature"
+    ],
+    "13": [
+      "package",
+      "package_dependencies",
+      "package_dependencies_playwright",
+      "playwright"
+    ],
+    "14": [
+      "bot_support_feature"
+    ],
+    "15": [
+      "changelog_md"
+    ],
+    "16": [
+      "doc_ai_guide_md"
+    ],
+    "17": [
+      "doc_architecture_md"
+    ],
+    "18": [
+      "doc_bot_platforms_md"
+    ],
+    "19": [
+      "doc_session_context_md"
+    ],
+    "20": [
+      "interactive_config_ui_feature"
+    ],
+    "21": [
+      "offline_dictionaries_feature"
+    ],
+    "22": [
+      "pkg_bl"
+    ],
+    "23": [
+      "readme_md"
+    ],
+    "24": [
+      "readme_zh-cn_md"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1,
+    "1": 0.12878787878787878,
+    "2": 0.13105413105413105,
+    "3": 0.2619047619047619,
+    "4": 0.23529411764705882,
+    "5": 0.2857142857142857,
+    "6": 0.23076923076923078,
+    "7": 0.38461538461538464,
+    "8": 0.3333333333333333,
+    "9": 0.22727272727272727,
+    "10": 0.24444444444444444,
+    "11": 0.2222222222222222,
+    "12": 0.3333333333333333,
+    "13": 0.5,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0
+  },
+  "gods": [
+    {
+      "id": "main_main",
+      "label": "main()",
+      "degree": 28
+    },
+    {
+      "id": "dict_translationdata",
+      "label": "TranslationData",
+      "degree": 24
+    },
+    {
+      "id": "config_config",
+      "label": "Config",
+      "degree": 19
+    },
+    {
+      "id": "internal_config_tui_interactiveconfigwithcache",
+      "label": "InteractiveConfigWithCache()",
+      "degree": 14
+    },
+    {
+      "id": "dict_rdict",
+      "label": "Rdict",
+      "degree": 14
+    },
+    {
+      "id": "main_pickquery",
+      "label": "pickQuery()",
+      "degree": 14
+    },
+    {
+      "id": "internal_render_render_rendertranslation",
+      "label": "RenderTranslation()",
+      "degree": 13
+    },
+    {
+      "id": "dict_offlinedictionary",
+      "label": "OfflineDictionary",
+      "degree": 12
+    },
+    {
+      "id": "main_llmquery",
+      "label": "llmQuery()",
+      "degree": 12
+    },
+    {
+      "id": "cache_cache",
+      "label": "Cache",
+      "degree": 10
+    }
+  ],
+  "surprises": [
+    {
+      "source": "main()",
+      "target": "NewRdict()",
+      "source_files": [
+        "cmd/dingtalk/main.go",
+        "internal/dict/rdict.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "main()",
+      "target": "RenderTranslation()",
+      "source_files": [
+        "cmd/dingtalk/main.go",
+        "internal/render/render.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "main()",
+      "target": "NewRdict()",
+      "source_files": [
+        "cmd/telegram/main.go",
+        "internal/dict/rdict.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "main()",
+      "target": "RenderTranslation()",
+      "source_files": [
+        "cmd/telegram/main.go",
+        "internal/render/render.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "clearCacheCmd()",
+      "target": "New()",
+      "source_files": [
+        "main.go",
+        "internal/cache/cache.go"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `TranslationData` connect `Offline Dictionary Lookup` to `Query and Translation Engine`, `Translation Rendering and Errors`, `German Dictionary Parsing`, `LLM Translation Source`?",
+      "why": "High betweenness centrality (0.173) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `main()` connect `Configuration Management` to `Offline Dictionary Lookup`, `Query and Translation Engine`, `LLM Translation Source`, `Interactive Config UI`, `Bot Platform Support`?",
+      "why": "High betweenness centrality (0.145) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `pickQuery()` connect `Query and Translation Engine` to `Translation Rendering and Errors`, `Configuration Management`, `Terminal Input Handling`, `LLM Translation Source`?",
+      "why": "High betweenness centrality (0.120) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 11 inferred relationships involving `main()` (e.g. with `Mode` and `ConfigPath()`) actually correct?",
+      "why": "`main()` has 11 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 3 inferred relationships involving `InteractiveConfigWithCache()` (e.g. with `DefaultLLMConfig()` and `Save()`) actually correct?",
+      "why": "`InteractiveConfigWithCache()` has 3 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `dingtalkRequest`, `bl`, `Translator` to the rest of the system?",
+      "why": "19 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Offline Dictionary Lookup` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

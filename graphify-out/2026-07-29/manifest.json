@@ -1,0 +1,142 @@
+{
+  "cmd/dingtalk/main.go": {
+    "mtime": 1780046699.380434,
+    "ast_hash": "9eedc0afb0f63c61b5e5f7eeb10a6527",
+    "semantic_hash": "9eedc0afb0f63c61b5e5f7eeb10a6527"
+  },
+  "cmd/telegram/main.go": {
+    "mtime": 1780046673.323326,
+    "ast_hash": "109e8de172ecbe2d2601452c927e14d9",
+    "semantic_hash": "109e8de172ecbe2d2601452c927e14d9"
+  },
+  "config.example.json": {
+    "mtime": 1783185663.7568805,
+    "ast_hash": "32f4339c67840e8efe71b86242ffc337",
+    "semantic_hash": "32f4339c67840e8efe71b86242ffc337"
+  },
+  "go.mod": {
+    "mtime": 1779987116.7244341,
+    "ast_hash": "fa26bb6b4c03b4e411e93644c09c1caf",
+    "semantic_hash": "fa26bb6b4c03b4e411e93644c09c1caf"
+  },
+  "internal/cache/cache.go": {
+    "mtime": 1783139409.2367094,
+    "ast_hash": "4976b4a007d86e279bf3cf2e288197db",
+    "semantic_hash": "4976b4a007d86e279bf3cf2e288197db"
+  },
+  "internal/config/config.go": {
+    "mtime": 1781884410.8033059,
+    "ast_hash": "61a67558662c15c102148a88dc468f03",
+    "semantic_hash": "61a67558662c15c102148a88dc468f03"
+  },
+  "internal/config/tui.go": {
+    "mtime": 1783139518.7947092,
+    "ast_hash": "768b469d250271657a098f3a9ccabcff",
+    "semantic_hash": "768b469d250271657a098f3a9ccabcff"
+  },
+  "internal/dict/german.go": {
+    "mtime": 1780033186.335788,
+    "ast_hash": "523b3cbfeb590566f1ccd628b81f05fa",
+    "semantic_hash": "523b3cbfeb590566f1ccd628b81f05fa"
+  },
+  "internal/dict/llm.go": {
+    "mtime": 1783185468.3981817,
+    "ast_hash": "65f0121c72c94a28b8f45d73504a9470",
+    "semantic_hash": "65f0121c72c94a28b8f45d73504a9470"
+  },
+  "internal/dict/offline.go": {
+    "mtime": 1780315657.142794,
+    "ast_hash": "9c0453419c802b64d5c049fd0e434a59",
+    "semantic_hash": "9c0453419c802b64d5c049fd0e434a59"
+  },
+  "internal/dict/rdict.go": {
+    "mtime": 1781881346.960712,
+    "ast_hash": "8e788dae4ef0ea2e990104a048203fbc",
+    "semantic_hash": "8e788dae4ef0ea2e990104a048203fbc"
+  },
+  "internal/dict/source.go": {
+    "mtime": 1781881586.4831321,
+    "ast_hash": "7a729182c8fa78ac0021be662c3be71f",
+    "semantic_hash": "7a729182c8fa78ac0021be662c3be71f"
+  },
+  "internal/dict/types.go": {
+    "mtime": 1783185449.342016,
+    "ast_hash": "04f0382780c2221ad1e2ae67bf478fe9",
+    "semantic_hash": "04f0382780c2221ad1e2ae67bf478fe9"
+  },
+  "internal/dict/youdao.go": {
+    "mtime": 1780028822.3609476,
+    "ast_hash": "92d5d13e306f4e59f611604bd41f117b",
+    "semantic_hash": "92d5d13e306f4e59f611604bd41f117b"
+  },
+  "internal/render/render.go": {
+    "mtime": 1783185457.0740833,
+    "ast_hash": "6c48393d98fc333dc9ca9d8b21055067",
+    "semantic_hash": "6c48393d98fc333dc9ca9d8b21055067"
+  },
+  "internal/tui/input.go": {
+    "mtime": 1784102989.4489968,
+    "ast_hash": "80032337969f05fe6f51b3597fa30021",
+    "semantic_hash": "80032337969f05fe6f51b3597fa30021"
+  },
+  "main.go": {
+    "mtime": 1784633887.2900188,
+    "ast_hash": "2819236f1bbd35e51a5e74bee464532f",
+    "semantic_hash": "2819236f1bbd35e51a5e74bee464532f"
+  },
+  "package.json": {
+    "mtime": 1783219411.669718,
+    "ast_hash": "9c63066a60eb80b521058425f9bfb388",
+    "semantic_hash": "9c63066a60eb80b521058425f9bfb388"
+  },
+  "publish-helper.js": {
+    "mtime": 1783220257.7018087,
+    "ast_hash": "b6c81a872eb2fd0ec391a01503b152ad",
+    "semantic_hash": "b6c81a872eb2fd0ec391a01503b152ad"
+  },
+  "scripts/build_de_en/main.go": {
+    "mtime": 1780316469.601922,
+    "ast_hash": "0c4423440a05ccef25483574e7338664",
+    "semantic_hash": "0c4423440a05ccef25483574e7338664"
+  },
+  "scripts/build_dict/main.go": {
+    "mtime": 1780036249.686743,
+    "ast_hash": "9a7f2404c95b6e41b412f707f5c41c75",
+    "semantic_hash": "9a7f2404c95b6e41b412f707f5c41c75"
+  },
+  "CHANGELOG.md": {
+    "mtime": 1784633941.1635869,
+    "ast_hash": "85cd7d5a1ec59ce21bdc9e2e23ca49d5",
+    "semantic_hash": "85cd7d5a1ec59ce21bdc9e2e23ca49d5"
+  },
+  "README.md": {
+    "mtime": 1783188415.1626904,
+    "ast_hash": "7685aaa4397883ba224bb1e4a5b142fa",
+    "semantic_hash": "7685aaa4397883ba224bb1e4a5b142fa"
+  },
+  "README.zh-CN.md": {
+    "mtime": 1783188448.3029783,
+    "ast_hash": "d48e1c099b6f1be29e388f4b97fd240d",
+    "semantic_hash": "d48e1c099b6f1be29e388f4b97fd240d"
+  },
+  "doc/AI_GUIDE.md": {
+    "mtime": 1784633970.1308532,
+    "ast_hash": "9ca94bba66b17ce14f1dd679e8899bbe",
+    "semantic_hash": "9ca94bba66b17ce14f1dd679e8899bbe"
+  },
+  "doc/ARCHITECTURE.md": {
+    "mtime": 1780045458.4873507,
+    "ast_hash": "73a1b565c039433d870191b3a380ea2f",
+    "semantic_hash": "73a1b565c039433d870191b3a380ea2f"
+  },
+  "doc/BOT_PLATFORMS.md": {
+    "mtime": 1779989186.1454866,
+    "ast_hash": "076266b2d1b75a7a1de3271110c7eb67",
+    "semantic_hash": "076266b2d1b75a7a1de3271110c7eb67"
+  },
+  "doc/session_context.md": {
+    "mtime": 1784633960.1177611,
+    "ast_hash": "a4f0808d3e93acc68879aefb43daa4f2",
+    "semantic_hash": "a4f0808d3e93acc68879aefb43daa4f2"
+  }
+}
