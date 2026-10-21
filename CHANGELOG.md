@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [v1.8.4] - 2026-10-21
+
+### Fixed
+
+- **OpenCode Go (`opencode.ai/zen/go`) 400 MissingSessionID**: the gateway
+  requires a stable per-conversation identifier in `x-opencode-session` plus a
+  non-generic `User-Agent`. Requests carried neither, so every call was rejected
+  before reaching a model. All three LLM request paths — `LLMSource.Translate`,
+  `sendChatRequest`, `sendRawLLMRequest` — now set both headers through
+  `dict.ApplyProviderHeaders`, which derives a deterministic per-machine session
+  ID (hostname + user + uid). No new config keys.
+
+### Changed
+
+- Provider preset `opencode-zen` renamed to `opencode-go` and pointed at
+  `https://opencode.ai/zen/go/v1` (`opencode.ai/zen/v1` is now pay-as-you-go and
+  fails with `Insufficient account funds` on Go-only accounts).
+
 ## [v1.8.3] - 2026-07-16
 
 ### Added

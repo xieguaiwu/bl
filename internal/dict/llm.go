@@ -2,16 +2,54 @@ package dict
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"bl/internal/config"
 )
+
+const (
+	// llmUserAgent identifies this client to LLM gateways. Generic HTTP-library
+	// user agents (Go-http-client/1.1) are discouraged by OpenCode Go.
+	llmUserAgent = "bl-translate/1.0"
+
+	// openCodeSessionHeader is required by the OpenCode Go gateway
+	// (opencode.ai/zen/go). Requests without it fail with HTTP 400
+	// MissingSessionID.
+	openCodeSessionHeader = "x-opencode-session"
+)
+
+// ApplyProviderHeaders sets request headers that a specific OpenAI-compatible
+// endpoint requires in addition to Content-Type and Authorization. Call it
+// after those two headers are set.
+//
+// OpenCode Go requires a stable per-conversation identifier in
+// x-opencode-session so requests can be routed and prompt-cached; without it
+// every call is rejected (HTTP 400 MissingSessionID). bl translates one word
+// per invocation, so a stable per-machine identifier is sufficient.
+func ApplyProviderHeaders(req *http.Request, baseURL string) {
+	req.Header.Set("User-Agent", llmUserAgent)
+	if !strings.Contains(baseURL, "opencode.ai/zen/go") {
+		return
+	}
+	req.Header.Set(openCodeSessionHeader, openCodeSessionID())
+}
+
+// openCodeSessionID derives a deterministic, machine-local session identifier.
+func openCodeSessionID() string {
+	host, _ := os.Hostname()
+	seed := "bl-translate|" + host + "|" + os.Getenv("USER") + "|" + strconv.Itoa(os.Getuid())
+	sum := sha256.Sum256([]byte(seed))
+	return "bl-" + hex.EncodeToString(sum[:8])
+}
 
 // LLMSource implements DictionarySource via OpenAI-compatible chat API.
 // It stubs FetchURL/Parse (inherited from DictionarySource interface) and
@@ -155,6 +193,7 @@ func (s *LLMSource) Translate(word string) (*TranslationData, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
+	ApplyProviderHeaders(req, s.provider.BaseURL)
 
 	resp, err := s.client.Do(req)
 	if err != nil {

@@ -583,6 +583,7 @@ func sendChatRequest(baseURL, model, apiKey, systemPrompt, userMsg string, tempe
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+resolvedKey)
+	dict.ApplyProviderHeaders(req, baseURL)
 
 	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
@@ -1003,6 +1004,7 @@ func sendRawLLMRequest(baseURL, model, apiKey, prompt string) (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+resolvedKey)
+	dict.ApplyProviderHeaders(req, baseURL)
 
 	client := &http.Client{Timeout: 90 * time.Second}
 	resp, err := client.Do(req)
